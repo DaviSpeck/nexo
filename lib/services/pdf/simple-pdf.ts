@@ -202,6 +202,8 @@ function buildDocumentHtml(
             background: linear-gradient(180deg, #f8fbff 0%, #f3f8ff 100%);
             border: 1px solid #e5edf9;
             border-radius: 10px;
+            -webkit-box-decoration-break: clone;
+            box-decoration-break: clone;
             position: relative;
             z-index: 1;
           }
