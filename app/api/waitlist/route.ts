@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { createHash } from "node:crypto";
+import { sendWaitlistConfirmationEmail } from "@/lib/services/notifications/waitlist-confirmation";
 
 export const runtime = "nodejs";
 
@@ -8,7 +9,8 @@ const waitlistSchema = z.object({
   email: z.string().trim().email().max(180),
   company: z.string().trim().min(2).max(120),
   role: z.string().trim().min(2).max(120),
-  useCase: z.string().trim().max(700).optional().default("")
+  useCase: z.string().trim().max(700).optional().default(""),
+  locale: z.enum(["pt", "en"]).optional().default("pt")
 });
 
 type WaitlistEntry = z.infer<typeof waitlistSchema> & {
@@ -214,10 +216,37 @@ export async function POST(request: Request) {
     // Intentionally ignored.
   }
 
+  // Best effort: confirmation e-mail must not break waitlist flow.
+  try {
+    const emailResult = await sendWaitlistConfirmationEmail({
+      name: entry.name,
+      email: entry.email,
+      locale: entry.locale
+    });
+
+    await insertEventLog({
+      eventName: "waitlist_confirmation_email",
+      eventSource: "web",
+      path: requestContext.path,
+      referrer: requestContext.referrer,
+      userAgent: requestContext.userAgent,
+      ipHash: requestContext.ipHash,
+      payload: {
+        email_domain: entry.email.split("@")[1]?.toLowerCase() ?? "",
+        locale: entry.locale,
+        status: emailResult.status,
+        reason: "reason" in emailResult ? emailResult.reason : ""
+      },
+      createdAt: new Date().toISOString()
+    });
+  } catch {
+    // Intentionally ignored.
+  }
+
   return Response.json(
     {
       ok: true,
-      message: "Cadastro de interesse registrado com sucesso."
+      message: "Cadastro de interesse registrado com sucesso. Enviamos um e-mail de confirmação."
     },
     { status: 201 }
   );

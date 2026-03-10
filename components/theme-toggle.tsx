@@ -41,16 +41,18 @@ export default function ThemeToggle() {
     window.localStorage.setItem(STORAGE_KEY, next);
   }
 
+  const isDark = ready ? theme === "dark" : false;
+
   return (
     <button
       className="theme-toggle"
       type="button"
       onClick={toggleTheme}
-      aria-label={theme === "dark" ? "Ativar tema claro" : "Ativar tema escuro"}
-      title={theme === "dark" ? "Tema claro" : "Tema escuro"}
+      aria-label={isDark ? "Tema atual: escuro. Ativar tema claro." : "Tema atual: claro. Ativar tema escuro."}
+      title={isDark ? "Ativar tema claro" : "Ativar tema escuro"}
     >
-      <span aria-hidden="true">{ready && theme === "dark" ? "☀" : "☾"}</span>
-      <span>{ready ? (theme === "dark" ? "Claro" : "Escuro") : "Tema"}</span>
+      <span aria-hidden="true">{isDark ? "☾" : "☀"}</span>
+      <span>{ready ? (isDark ? "Escuro" : "Claro") : "Tema"}</span>
     </button>
   );
 }
