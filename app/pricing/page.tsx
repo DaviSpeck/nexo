@@ -32,22 +32,32 @@ const INITIAL_FORM: WaitlistFormState = {
 
 const copy = {
   pt: {
-    navProduct: "Home",
-    navFree: "Free",
-    navAccess: "Acesso",
-    backFree: "Voltar para Free",
-    joinList: "Entrar na lista",
+    navProduct: "Produto",
+    navHow: "Como funciona",
+    navFree: "Teste grátis",
+    navSupport: "Suporte",
+    navPlans: "Planos",
+    ctaWaitlist: "Entrar na lista",
+    ctaTry: "Testar agora",
     badge: "LISTA DE INTERESSE",
     title:
       "Estamos iniciando a NEXO em ciclos pequenos. Entre na lista de interesse.",
     subtitle:
       "Ainda não estamos abrindo planos pagos. Primeiro queremos validar o produto com equipes reais e evoluir a área autenticada com foco no que realmente ajuda no trabalho diário.",
+    heroTag1: "Acesso gradual",
+    heroTag2: "Feedback orienta roadmap",
+    heroTag3: "Free já disponível",
     whatYouGet: "Evoluções previstas na área autenticada",
-    benefit1: "Integração com Git para importar e versionar documentos",
-    benefit2: "Gerenciamento de equipes e permissões por workspace",
-    benefit3: "Histórico completo dos documentos gerados",
-    benefit4: "Contexto de PRs para registrar decisões de mudança",
-    benefit5: "Visão de intervalos de commit para análise operacional",
+    whatYouGetIntro: "O acesso completo entra depois. O que estamos preparando:",
+    benefit1:
+      "Repositório de arquivos .md com navegação tipo Drive para organizar documentos por time, pasta e contexto",
+    benefit2:
+      "Conversão em PDF direto dos markdowns já salvos no repositório, sem reupload manual",
+    benefit3: "Integração com Git para importar e versionar documentos",
+    benefit4: "Gerenciamento de equipes e permissões por workspace",
+    benefit5: "Histórico completo dos documentos gerados",
+    benefit6: "Contexto de PRs para registrar decisões de mudança",
+    benefit7: "Visão de intervalos de commit para análise operacional",
     register: "Registrar interesse",
     name: "Nome",
     email: "E-mail de trabalho",
@@ -71,31 +81,53 @@ const copy = {
     noteTitle: "Enquanto isso, use o Free",
     noteBody:
       "Você já pode validar o fluxo principal na home: importar markdown, anexar evidências e gerar PDF pronto para comunicação executiva.",
+    noteStep1: "Suba um markdown",
+    noteStep2: "Anexe evidências",
+    noteStep3: "Gere o PDF",
+    noteStep1Body: "Cole ou envie um `.md` com preview imediato.",
+    noteStep2Body: "Inclua imagens para contexto técnico e executivo.",
+    noteStep3Body: "Baixe um PDF estruturado para circulação.",
     testFree: "Testar Free novamente",
     pulseTitle: "Momento atual do produto",
     pulseBody:
       "Estamos em fase inicial. Vamos liberar acesso gradualmente e priorizar as evoluções mais úteis para times reais.",
+    pulseLabel1: "Fase",
+    pulseValue1: "Early access",
+    pulseLabel2: "Convites",
+    pulseValue2: "Em lotes",
+    pulseLabel3: "Critério",
+    pulseValue3: "Uso real",
     pulseItem1: "Sem promessa de data exata para todos",
     pulseItem2: "Convites enviados em lotes",
     pulseItem3: "Feedback dos primeiros usuários influencia roadmap",
   },
   en: {
-    navProduct: "Home",
-    navFree: "Free",
-    navAccess: "Access",
-    backFree: "Back to Free",
-    joinList: "Join waitlist",
+    navProduct: "Product",
+    navHow: "How it works",
+    navFree: "Free trial",
+    navSupport: "Support",
+    navPlans: "Plans",
+    ctaWaitlist: "Join waitlist",
+    ctaTry: "Try now",
     badge: "INTEREST LIST",
     title:
       "We are starting NEXO in small rollout cycles. Join the interest list.",
     subtitle:
       "We are not launching paid plans yet. First we want to validate the product with real teams and evolve the authenticated area around practical daily needs.",
+    heroTag1: "Gradual access",
+    heroTag2: "Feedback shapes roadmap",
+    heroTag3: "Free already available",
     whatYouGet: "Planned authenticated features",
-    benefit1: "Git integration to import and version documents",
-    benefit2: "Team management and workspace permissions",
-    benefit3: "Full history of generated documents",
-    benefit4: "PR context linked to change decisions",
-    benefit5: "Commit interval visibility for operational analysis",
+    whatYouGetIntro: "Full access comes next. This is what we are preparing:",
+    benefit1:
+      "A .md repository with Drive-like navigation to organize documents by team, folder, and context",
+    benefit2:
+      "Direct PDF conversion from markdown files already stored in the repository, without manual re-upload",
+    benefit3: "Git integration to import and version documents",
+    benefit4: "Team management and workspace permissions",
+    benefit5: "Full history of generated documents",
+    benefit6: "PR context linked to change decisions",
+    benefit7: "Commit interval visibility for operational analysis",
     register: "Register interest",
     name: "Name",
     email: "Work email",
@@ -119,10 +151,22 @@ const copy = {
     noteTitle: "Meanwhile, use Free",
     noteBody:
       "You can already validate the core flow on home: import markdown, attach evidence, and generate an executive-ready PDF.",
+    noteStep1: "Upload markdown",
+    noteStep2: "Attach evidence",
+    noteStep3: "Generate PDF",
+    noteStep1Body: "Paste or upload a `.md` file with instant preview.",
+    noteStep2Body: "Add images for technical and executive context.",
+    noteStep3Body: "Download a structured PDF ready to share.",
     testFree: "Try Free again",
     pulseTitle: "Current product stage",
     pulseBody:
       "We are still early-stage. Access will be released gradually while we prioritize the most useful improvements for real teams.",
+    pulseLabel1: "Stage",
+    pulseValue1: "Early access",
+    pulseLabel2: "Invites",
+    pulseValue2: "Batched",
+    pulseLabel3: "Criteria",
+    pulseValue3: "Real usage",
     pulseItem1: "No fixed timeline promise for everyone",
     pulseItem2: "Invites are sent in batches",
     pulseItem3: "Early user feedback directly shapes the roadmap",
@@ -142,6 +186,7 @@ export default function PricingPage() {
   const [statusTone, setStatusTone] = useState<"neutral" | "success" | "error">(
     "neutral",
   );
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isPricingActive = pathname === "/pricing";
 
   function validateField(field: WaitlistField, value: string): string {
@@ -212,6 +257,25 @@ export default function PricingPage() {
     });
   }, []);
 
+  useEffect(() => {
+    if (!mobileMenuOpen) {
+      return;
+    }
+
+    const onResize = () => {
+      if (window.innerWidth >= 980) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [mobileMenuOpen]);
+
+  function closeMenu() {
+    setMobileMenuOpen(false);
+  }
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const validation = validateForm(form);
@@ -262,44 +326,95 @@ export default function PricingPage() {
 
   return (
     <>
-      <main className="pricing-page motion-root">
-        <header className="pricing-top motion rise-1">
+      <div className="pricing-nav-shell motion rise-1">
+        <header className="pricing-top hero-nav landing-nav">
           <Link href="/" className="hero-brand hero-brand-link">
             <img alt="NEXO" src="/brand/nexo_logo_primary.svg" />
             <strong>NEXO</strong>
           </Link>
-          <nav className="pricing-nav-links">
-            <Link href="/">{c.navProduct}</Link>
-            <Link href="/#free-converter">{c.navFree}</Link>
-            <Link
-              href="/pricing"
-              className={isPricingActive ? "nav-link-active" : undefined}
-              aria-current={isPricingActive ? "page" : undefined}
-            >
-              {c.navAccess}
-            </Link>
-          </nav>
-          <div className="hero-nav-actions">
-            <LocaleToggle />
-            <ThemeToggle />
-            <Link className="btn-nav-ghost" href="/">
-              {c.backFree}
-            </Link>
-            <a className="btn-nav-solid" href="#waitlist-form">
-              {c.joinList}
-            </a>
+
+          <button
+            className="nav-menu-toggle"
+            type="button"
+            aria-expanded={mobileMenuOpen}
+            aria-controls="pricing-nav-links"
+            onClick={() => setMobileMenuOpen((open) => !open)}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
+
+          <div
+            className={`landing-nav-panel ${mobileMenuOpen ? "is-open" : ""}`}
+            id="pricing-nav-links"
+          >
+            <nav className="pricing-nav-links">
+              <Link href="/" onClick={closeMenu}>
+                {c.navProduct}
+              </Link>
+              <Link href="/#como-funciona" onClick={closeMenu}>
+                {c.navHow}
+              </Link>
+              <Link href="/#free-converter" onClick={closeMenu}>
+                {c.navFree}
+              </Link>
+              <Link href="/suporte" onClick={closeMenu}>
+                {c.navSupport}
+              </Link>
+              <Link
+                href="/pricing"
+                className={isPricingActive ? "nav-link-active" : undefined}
+                aria-current={isPricingActive ? "page" : undefined}
+                onClick={closeMenu}
+              >
+                {c.navPlans}
+              </Link>
+            </nav>
+
+            <div className="hero-nav-actions">
+              <LocaleToggle />
+              <ThemeToggle />
+              <a className="btn-nav-ghost" href="#waitlist-form" onClick={closeMenu}>
+                {c.ctaWaitlist}
+              </a>
+              <Link className="btn-nav-solid" href="/#free-converter" onClick={closeMenu}>
+                {c.ctaTry}
+              </Link>
+            </div>
           </div>
         </header>
+      </div>
 
+      <main className="pricing-page motion-root">
         <section className="pricing-hero-layout motion rise-2" data-deck-group>
           <div className="pricing-hero deck-card">
             <p className="hero-badge">{c.badge}</p>
             <h1>{c.title}</h1>
             <p>{c.subtitle}</p>
+            <div className="pricing-hero-tags">
+              <span>{c.heroTag1}</span>
+              <span>{c.heroTag2}</span>
+              <span>{c.heroTag3}</span>
+            </div>
           </div>
           <aside className="pricing-pulse surface-lift deck-card">
             <p className="plan-name">{c.pulseTitle}</p>
             <p>{c.pulseBody}</p>
+            <div className="pricing-pulse-stats">
+              <article>
+                <small>{c.pulseLabel1}</small>
+                <strong>{c.pulseValue1}</strong>
+              </article>
+              <article>
+                <small>{c.pulseLabel2}</small>
+                <strong>{c.pulseValue2}</strong>
+              </article>
+              <article>
+                <small>{c.pulseLabel3}</small>
+                <strong>{c.pulseValue3}</strong>
+              </article>
+            </div>
             <ul>
               <li>{c.pulseItem1}</li>
               <li>{c.pulseItem2}</li>
@@ -311,13 +426,30 @@ export default function PricingPage() {
         <div className="pricing-grid motion rise-3" data-deck-group>
           <article className="price-card surface-lift deck-card">
             <p className="plan-name">{c.whatYouGet}</p>
-            <ul>
-              <li>{c.benefit1}</li>
-              <li>{c.benefit2}</li>
-              <li>{c.benefit3}</li>
-              <li>{c.benefit4}</li>
-              <li>{c.benefit5}</li>
-            </ul>
+            <p className="pricing-card-intro">{c.whatYouGetIntro}</p>
+            <div className="pricing-feature-list">
+              <article className="pricing-feature-item">
+                <strong>{c.benefit1}</strong>
+              </article>
+              <article className="pricing-feature-item">
+                <strong>{c.benefit2}</strong>
+              </article>
+              <article className="pricing-feature-item">
+                <strong>{c.benefit3}</strong>
+              </article>
+              <article className="pricing-feature-item">
+                <strong>{c.benefit4}</strong>
+              </article>
+              <article className="pricing-feature-item">
+                <strong>{c.benefit5}</strong>
+              </article>
+              <article className="pricing-feature-item">
+                <strong>{c.benefit6}</strong>
+              </article>
+              <article className="pricing-feature-item">
+                <strong>{c.benefit7}</strong>
+              </article>
+            </div>
           </article>
 
           <form
@@ -455,11 +587,33 @@ export default function PricingPage() {
         </div>
 
         <section className="pricing-note motion rise-3 deck-card">
-          <h2>{c.noteTitle}</h2>
-          <p>{c.noteBody}</p>
-          <Link className="btn-cta-alt" href="/">
-            {c.testFree}
-          </Link>
+          <div className="pricing-note-head">
+            <div>
+              <h2>{c.noteTitle}</h2>
+              <p>{c.noteBody}</p>
+            </div>
+            <Link className="btn-cta-alt pricing-note-cta" href="/">
+              {c.testFree}
+            </Link>
+          </div>
+
+          <div className="pricing-note-steps" data-deck-group>
+            <article className="deck-card pricing-note-step">
+              <span>01</span>
+              <strong>{c.noteStep1}</strong>
+              <p>{c.noteStep1Body}</p>
+            </article>
+            <article className="deck-card pricing-note-step">
+              <span>02</span>
+              <strong>{c.noteStep2}</strong>
+              <p>{c.noteStep2Body}</p>
+            </article>
+            <article className="deck-card pricing-note-step">
+              <span>03</span>
+              <strong>{c.noteStep3}</strong>
+              <p>{c.noteStep3Body}</p>
+            </article>
+          </div>
         </section>
       </main>
       <div className="page-footer-wrap">

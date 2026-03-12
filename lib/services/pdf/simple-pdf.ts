@@ -9,10 +9,20 @@ type AttachmentInput = {
   dataUrl: string;
 };
 
-type BuildPdfInput = {
+type CustomLogoInput = AttachmentInput & {
+  tone: "dark" | "light";
+};
+
+type DocumentInput = {
   markdown: string;
   sourceName: string;
   attachments: AttachmentInput[];
+};
+
+type BuildPdfInput = {
+  sourceName: string;
+  documents: DocumentInput[];
+  customLogo: CustomLogoInput | null;
 };
 
 const HEADER_LOGO_CANDIDATES = ["nexo_logo_primary.svg", "nexo_logo_primary.png"];
@@ -58,44 +68,64 @@ function buildDocumentHtml(
   watermarkLogoDataUrl: string
 ) {
   const md = new MarkdownIt({ html: false, linkify: true, typographer: true, breaks: true });
-  const contentHtml = md.render(input.markdown);
+  const documentsHtml = input.documents
+    .map((document, documentIndex) => {
+      const contentHtml = md.render(document.markdown);
+      const attachmentPages = chunkAttachments(document.attachments, 2)
+        .map((page, pageIndex) => {
+          const cards = page
+            .map((item, itemIndex) => {
+              return `
+                <article class="attachment-card">
+                  <header>
+                    <span>${pageIndex * 2 + itemIndex + 1}.</span>
+                    <strong>${escapeHtml(item.fileName)}</strong>
+                  </header>
+                  <div class="image-box">
+                    <div class="image-fit" style="background-image: url('${item.dataUrl}');" aria-label="${escapeHtml(item.fileName)}"></div>
+                  </div>
+                </article>
+              `;
+            })
+            .join("\n");
 
-  const attachmentPages = chunkAttachments(input.attachments, 2)
-    .map((page, pageIndex) => {
-      const cards = page
-        .map((item, itemIndex) => {
           return `
-            <article class="attachment-card">
-              <header>
-                <span>${pageIndex * 2 + itemIndex + 1}.</span>
-                <strong>${escapeHtml(item.fileName)}</strong>
-              </header>
-              <div class="image-box">
-                <div class="image-fit" style="background-image: url('${item.dataUrl}');" aria-label="${escapeHtml(item.fileName)}"></div>
-              </div>
-            </article>
+            <section class="appendix-page" data-page-index="${pageIndex}">
+              ${cards}
+            </section>
           `;
         })
         .join("\n");
 
+      const appendixHtml =
+        document.attachments.length === 0
+          ? ""
+          : `
+            <section class="appendix">
+              <h2>Anexos do documento</h2>
+              <p class="appendix-subtitle">Evidencias visuais vinculadas a ${escapeHtml(document.sourceName)}</p>
+              ${attachmentPages}
+            </section>
+          `;
+
       return `
-        <section class="appendix-page" data-page-index="${pageIndex}">
-          ${cards}
+        <section class="document-section ${documentIndex > 0 ? "document-section-break" : ""}">
+          ${
+            input.documents.length > 1
+              ? `
+                <div class="document-chip-row">
+                  <span class="document-chip">Documento ${documentIndex + 1} de ${input.documents.length}</span>
+                  <strong>${escapeHtml(document.sourceName)}</strong>
+                </div>
+              `
+              : ""
+          }
+          <section class="content">${contentHtml}</section>
+          ${appendixHtml}
         </section>
       `;
     })
     .join("\n");
-
-  const appendixHtml =
-    input.attachments.length === 0
-      ? ""
-      : `
-      <section class="appendix">
-        <h2>Anexos</h2>
-        <p class="appendix-subtitle">Evidencias visuais anexadas ao final do documento</p>
-        ${attachmentPages}
-      </section>
-    `;
 
   return `
     <!doctype html>
@@ -150,10 +180,11 @@ function buildDocumentHtml(
           }
 
           .doc-header {
-            padding: 12px 14px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, #0f2046 0%, #183a7a 100%);
-            color: #f5f8ff;
+            padding: 14px 16px;
+            border-radius: 18px;
+            background: linear-gradient(180deg, #f9fbff 0%, #eef4ff 100%);
+            border: 1px solid #d7e3f7;
+            color: #17305c;
             margin-bottom: 12px;
             position: relative;
             z-index: 1;
@@ -162,39 +193,78 @@ function buildDocumentHtml(
           }
 
           .doc-header-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 18px;
+          }
+
+          .doc-header-left,
+          .doc-header-right {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            flex-wrap: nowrap;
           }
 
-          .brand {
+          .custom-logo-block {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 112px;
+          }
+
+          .custom-logo-surface {
+            width: 104px;
+            height: 64px;
+            display: grid;
+            place-items: center;
+            border-radius: 12px;
+            border: 1px solid #cfdbf0;
+            overflow: hidden;
+            box-shadow: inset 0 1px 0 #ffffff90;
+          }
+
+          .custom-logo-surface.tone-light {
+            background: linear-gradient(180deg, #ffffff 0%, #edf3ff 100%);
+          }
+
+          .custom-logo-surface.tone-dark {
+            background: linear-gradient(180deg, #16325e 0%, #1d427c 100%);
+          }
+
+          .custom-logo-surface img {
+            width: 86px;
+            height: 46px;
+            object-fit: contain;
+            padding: 4px 8px;
+          }
+
+          .nexo-mark {
+            min-width: 150px;
+            height: 64px;
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
-            min-width: 0;
+            padding: 0 12px;
+            border-radius: 12px;
+            border: 1px solid #cfdbf0;
+            background: linear-gradient(180deg, #ffffff 0%, #edf3ff 100%);
+            overflow: hidden;
+            box-shadow: inset 0 1px 0 #ffffff90;
           }
 
-          .brand img {
-            width: 14px;
-            height: 14px;
+          .nexo-mark img {
+            width: 28px;
+            height: 28px;
             object-fit: contain;
           }
 
-          .brand strong {
-            font-size: 20px;
+          .nexo-mark span {
+            font-size: 24px;
             line-height: 1;
-            letter-spacing: -0.01em;
-          }
-
-          .source {
-            max-width: 60%;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            font-size: 12px;
-            color: #d2e1ff;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: #16305c;
           }
 
           .content {
@@ -206,6 +276,42 @@ function buildDocumentHtml(
             box-decoration-break: clone;
             position: relative;
             z-index: 1;
+          }
+
+          .document-section + .document-section {
+            margin-top: 10px;
+          }
+
+          .document-section-break {
+            page-break-before: always;
+          }
+
+          .document-chip-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0 0 10px;
+            position: relative;
+            z-index: 1;
+          }
+
+          .document-chip {
+            display: inline-flex;
+            align-items: center;
+            height: 24px;
+            padding: 0 10px;
+            border-radius: 999px;
+            border: 1px solid #b7c9ea;
+            background: #edf3ff;
+            color: #1f4b8f;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+          }
+
+          .document-chip-row strong {
+            font-size: 14px;
+            color: #16305c;
           }
 
           .content h1,
@@ -360,25 +466,39 @@ function buildDocumentHtml(
 
         <header class="doc-header">
           <div class="doc-header-row">
-            <div class="brand">
-              ${headerLogoDataUrl ? `<img src="${headerLogoDataUrl}" alt="NEXO logo" />` : ""}
-              <strong>NEXO</strong>
+            <div class="doc-header-left">
+              ${
+                input.customLogo
+                  ? `
+                    <div class="custom-logo-block">
+                      <div class="custom-logo-surface tone-${input.customLogo.tone}">
+                        <img src="${input.customLogo.dataUrl}" alt="${escapeHtml(input.customLogo.fileName)}" />
+                      </div>
+                    </div>
+                  `
+                  : ""
+              }
             </div>
-            <span class="source">Fonte: ${escapeHtml(input.sourceName)}</span>
+            <div class="doc-header-right">
+              <div class="nexo-mark">
+                ${headerLogoDataUrl ? `<img src="${headerLogoDataUrl}" alt="NEXO logo" />` : ""}
+                <span>NEXO</span>
+              </div>
+            </div>
           </div>
         </header>
 
         <main>
-          <section class="content">${contentHtml}</section>
-          ${appendixHtml}
+          ${documentsHtml}
         </main>
       </body>
     </html>
   `;
 }
 
-function buildFooterTemplate(generatedAt: string) {
+function buildFooterTemplate(generatedAt: string, sourceName: string) {
   const escapedGeneratedAt = escapeHtml(generatedAt);
+  const escapedSourceName = escapeHtml(sourceName);
 
   return `
     <div style="
@@ -407,7 +527,7 @@ function buildFooterTemplate(generatedAt: string) {
         font-weight: 700;
         letter-spacing: 0.35px;
       ">FREE</span>
-      <span>Gerado em ${escapedGeneratedAt} · Pagina <span class="pageNumber"></span>/<span class="totalPages"></span></span>
+      <span>${escapedSourceName} · Gerado em ${escapedGeneratedAt} · Pagina <span class="pageNumber"></span>/<span class="totalPages"></span></span>
     </div>
   `;
 }
@@ -444,7 +564,7 @@ export async function buildPdfFromMarkdown(input: BuildPdfInput) {
       printBackground: true,
       displayHeaderFooter: true,
       headerTemplate: "<div></div>",
-      footerTemplate: buildFooterTemplate(generatedAt),
+      footerTemplate: buildFooterTemplate(generatedAt, input.sourceName),
       margin: {
         top: "16mm",
         right: "14mm",

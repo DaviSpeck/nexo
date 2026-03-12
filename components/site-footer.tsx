@@ -37,7 +37,17 @@ const copy = {
   }
 } as const;
 
-export default function SiteFooter() {
+type SiteFooterProps = {
+  onFreeClick?: () => void;
+  onPricingClick?: () => void;
+  onSupportClick?: () => void;
+};
+
+export default function SiteFooter({
+  onFreeClick,
+  onPricingClick,
+  onSupportClick,
+}: SiteFooterProps) {
   const { locale } = useLocale();
   const c = copy[locale];
   const year = new Date().getFullYear();
@@ -55,12 +65,18 @@ export default function SiteFooter() {
         <section>
           <h3>{c.product}</h3>
           <Link href="/">{c.home}</Link>
-          <Link href="/#free-converter">{c.free}</Link>
-          <Link href="/pricing">{c.pricing}</Link>
+          <Link href="/#free-converter" onClick={onFreeClick}>
+            {c.free}
+          </Link>
+          <Link href="/pricing" onClick={onPricingClick}>
+            {c.pricing}
+          </Link>
         </section>
         <section>
           <h3>{c.support}</h3>
-          <Link href="/suporte">{c.help}</Link>
+          <Link href="/suporte" onClick={onSupportClick}>
+            {c.help}
+          </Link>
           <a href={CONTACT_LINKS.supportMailto}>{c.email}</a>
           <a href={CONTACT_LINKS.whatsapp} target="_blank" rel="noreferrer">
             {c.whatsapp} ({CONTACTS.whatsappDisplay})

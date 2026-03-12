@@ -1,5 +1,6 @@
 "use client";
 
+import MarkdownIt from "markdown-it";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -10,13 +11,13 @@ import {
   useRef,
   useState,
 } from "react";
-import { FREE_LIMITS, formatBytes } from "@/lib/config/free-limits";
-import ThemeToggle from "@/components/theme-toggle";
 import LocaleToggle from "@/components/locale-toggle";
 import { useLocale } from "@/components/locale";
-import { useScrollDeck } from "@/components/use-scroll-deck";
 import { trackEvent } from "@/components/public-events";
 import SiteFooter from "@/components/site-footer";
+import ThemeToggle from "@/components/theme-toggle";
+import { useScrollDeck } from "@/components/use-scroll-deck";
+import { FREE_LIMITS, formatBytes } from "@/lib/config/free-limits";
 
 type AttachmentPayload = {
   fileName: string;
@@ -29,170 +30,338 @@ type AttachmentPreview = AttachmentPayload & {
   sizeBytes?: number;
 };
 
+type LogoPreview = AttachmentPreview;
+type LogoTone = "dark" | "light";
+type MarkdownDocument = {
+  id: string;
+  fileName: string;
+  markdown: string;
+  attachments: AttachmentPreview[];
+};
+
+type StatusKind = "neutral" | "success" | "error" | "loading";
+
+const previewMarkdownParser = new MarkdownIt({
+  html: false,
+  linkify: true,
+  typographer: true,
+  breaks: true,
+});
+
 const copy = {
   pt: {
-    navProduct: "Home",
-    navFree: "Free",
+    navProduct: "Produto",
+    navHow: "Como funciona",
+    navFree: "Teste grátis",
     navPlans: "Planos",
-    ctaAccess: "Fazer acesso",
-    ctaCreate: "Criar conta",
-    heroBadge: "NEXO PARA OPERAÇÕES CRÍTICAS",
-    heroTitle:
-      "Decisões de confiabilidade com linguagem executiva e execução clara.",
+    navSupport: "Suporte",
+    ctaPrimary: "Testar agora",
+    ctaSecondary: "Ver como funciona",
+    ctaWaitlist: "Entrar na lista",
+    ctaPlans: "Ver planos",
+    heroBadge: "Markdown para PDF institucional em minutos",
+    heroTitle: "Transforme documentos técnicos em PDFs executivos sem retrabalho.",
     heroCopy:
-      "Hoje muitos documentos já nascem em Markdown via IA, o que acelera muito. A NEXO ajuda a transformar esse conteúdo técnico em PDF padronizado, claro e pronto para circulação institucional.",
-    ctaTry: "Testar grátis",
-    pointsTitle: "Valor direto para o sistema",
-    points1: "Padroniza decisões operacionais e evita alinhamento informal.",
-    points2: "Formaliza risco, rollback, responsáveis e impacto financeiro.",
-    points3: "Publica PDF executivo com anexos para circulação imediata.",
-    showcase1: "Comunicado estruturado com objetivo, contexto e diretrizes.",
-    showcase2: "Checklist de mudança com risco, monitoramento e rollback.",
-    showcase3:
-      "Anexos visuais e histórico de decisão prontos para compartilhar.",
-    showcaseStatus: "Status da operação",
-    sectionKicker: "Problema que a NEXO resolve",
-    sectionTitle:
-      "Quando a decisão fica espalhada, a operação reage tarde e o impacto cresce.",
-    sectionCopy:
-      "Markdown é ótimo para produzir rápido, mas o PDF ainda é o formato mais reconhecido no dia a dia institucional. A NEXO conecta velocidade de criação com padrão de comunicação.",
-    card1t: "Decisão fragmentada",
-    card1d:
-      "Discussões em múltiplos canais geram ambiguidade sobre o que foi aprovado.",
-    card2t: "Execução sem contexto",
-    card2d:
-      "Times técnicos executam mudanças sem o racional completo de negócio e risco.",
-    card3t: "Resposta lenta a eventos críticos",
-    card3d:
-      "Sem runbook claro, o tempo de resposta cresce e o impacto financeiro aumenta.",
-    featureTabs: [
-      "Confiabilidade",
-      "Operação",
-      "Rastreabilidade",
-      "Governança",
-    ],
-    featureTitle: "Frentes de valor",
-    featureItem1: "Monitoramento por evento crítico",
-    featureItem2: "Plano de rollback explícito",
-    featureItem3: "Responsável por frente e decisão",
-    featureItem4: "Runbook para resposta operacional",
-    feat1t: "Documentação reutilizável",
-    feat1d:
-      "Use modelos de comunicado sem perder consistência, padrão e histórico de evolução.",
-    feat2t: "Visibilidade para negócio e tech",
-    feat2d:
-      "Mesmo documento atende decisão executiva e execução operacional sem retrabalho.",
-    feat3t: "Governança com evidência",
-    feat3d:
-      "Anexos e contexto técnico ficam consolidados para auditoria, revisão e aprendizado contínuo.",
-    freeKicker: "FREE CONVERTER",
-    freeTitle: "Teste agora sem login e valide o fluxo em minutos",
+      "A NEXO pega markdown gerado por times ou IA, organiza a narrativa e entrega um PDF padronizado, claro e pronto para circulação institucional.",
+    heroValue1: "Fluxo sem login no modo Free",
+    heroValue2: "Preview antes da geração",
+    heroValue3: "Nenhum conteúdo salvo no servidor",
+    heroFlowLabel: "Fluxo real",
+    heroFlowTitle: "Markdown -> revisão -> PDF institucional",
+    heroFlowCopy:
+      "Suba o `.md`, anexe evidências, revise o conteúdo e gere um documento estruturado para compartilhar com liderança e operação.",
+    heroMockInput: "Entrada técnica",
+    heroMockOutput: "Saída pronta para circular",
+    heroMockStep1: "Objetivo, contexto e impacto",
+    heroMockStep2: "Risco, rollback e responsáveis",
+    heroMockStep3: "Evidências visuais anexadas",
+    trustLabel: "Uso imediato",
+    trustValue: "Sem login",
+    problemKicker: "Problema",
+    problemTitle:
+      "Markdown acelera a produção, mas não resolve sozinho a comunicação institucional.",
+    problemCopy:
+      "Quando decisão, risco e evidências ficam espalhados, o time perde contexto, a liderança perde clareza e o PDF final vira trabalho manual.",
+    problem1t: "Decisão fragmentada",
+    problem1d:
+      "Aprovações e contexto ficam dispersos entre documentos, chats e ferramentas.",
+    problem2t: "PDF inconsistente",
+    problem2d:
+      "Cada documento sai com formato diferente e exige ajuste manual antes de circular.",
+    problem3t: "Baixa confiança operacional",
+    problem3d:
+      "Sem padrão, risco, rollback e responsáveis não ficam claros para quem executa.",
+    solutionKicker: "Solução",
+    solutionTitle: "Um fluxo simples para sair do markdown e chegar num documento executivo.",
+    solutionCopy:
+      "A landing passa a guiar o usuário pelo raciocínio completo: problema, solução, teste imediato, planos e suporte.",
+    stepsTitle: "Como funciona",
+    step1t: "1. Suba o markdown",
+    step1d: "Aceita arquivos `.md` e texto gerado por IA com preview imediato.",
+    step2t: "2. Adicione evidências",
+    step2d: "Inclua imagens que reforçam o contexto técnico ou operacional.",
+    step3t: "3. Gere o PDF",
+    step3d: "Receba um PDF estruturado, com melhor leitura e padrão institucional.",
+    productKicker: "Produto",
+    productTitle: "Feito para comunicação clara entre operação, produto e liderança.",
+    productCopy:
+      "A home prioriza um CTA principal, reduz decisão paralela e mostra o produto antes de pedir compromisso.",
+    productStat1: "CTA principal único acima da dobra",
+    productStat2: "Preview visual do fluxo markdown -> PDF",
+    productStat3: "Conversor com feedback de upload, progresso e confirmação",
+    benefitsKicker: "Benefícios",
+    benefitsTitle: "Mais entendimento em menos tempo.",
+    benefit1t: "Padronização imediata",
+    benefit1d:
+      "O documento sai com estrutura consistente mesmo quando a origem veio de markdown gerado por IA.",
+    benefit2t: "Leitura executiva",
+    benefit2d:
+      "Texto, evidências e decisões ficam mais fáceis de escanear em desktop e mobile.",
+    benefit3t: "Privacidade no modo Free",
+    benefit3d:
+      "Processamento temporário durante a sessão, sem persistir conteúdo do arquivo ou anexos.",
+    freeKicker: "Free Converter",
+    freeTitle: "Teste agora e valide o fluxo completo sem login",
     freeSubtitle:
-      "Suba markdown (inclusive gerado por IA), anexe evidências visuais e gere um PDF consistente para compartilhar.",
-    freeSecurityTitle: "Privacidade no modo Free",
-    freeSecurity1: "Nenhum conteúdo do markdown é salvo no banco.",
-    freeSecurity2: "Nenhuma imagem enviada é armazenada após a execução.",
-    freeSecurity3: "O PDF gerado não é persistido em servidor.",
-    freeSecurity4:
-      "Só registramos metadados técnicos de uso para segurança e evolução do produto.",
+      "Suba markdown, anexe evidências, revise o preview e gere um PDF estruturado em poucos minutos.",
+    freeSecurityTitle: "Privacidade e limites do modo Free",
+    freeSecurity1: "Nenhum conteúdo do markdown é salvo.",
+    freeSecurity2: "As imagens não ficam armazenadas após a geração.",
+    freeSecurity3: "Processamento temporário durante a sessão.",
+    freeSecurity4: "Só registramos eventos técnicos de uso para medir a experiência.",
+    docsLabel: "Documentos markdown",
+    docsHelper:
+      "Até 3 documentos por geração. Cada documento mantém seus próprios anexos.",
+    docsAdd: "Adicionar documento",
+    docsRemove: "Remover documento",
+    docsLimitReached: "Limite de documentos atingido no modo Free.",
+    docsTotalChars: "Total do pacote",
+    docsActive: "Documento ativo",
+    docsAttachmentsHint: "Os anexos abaixo pertencem apenas ao documento ativo.",
+    docsPreviewHint: "O preview mostra como o PDF final será diagramado.",
+    docDefaultName: "documento",
+    docUntitled: "Documento sem nome",
+    noMdYet: "Nenhum markdown carregado ainda.",
+    previewEmpty:
+      "Envie um arquivo .md ou cole conteúdo para visualizar a composição do PDF.",
     mdLabel: "Arquivo markdown (.md)",
-    mdDrop: "Clique para selecionar ou arraste um `.md` aqui",
-    mdCurrent: "Arquivo atual:",
+    mdDrop: "Toque para selecionar ou arraste um arquivo `.md`",
+    mdDragging: "Solte o arquivo para importar",
+    mdCurrent: "Arquivo atual",
     mdImporting: "Importando markdown",
-    imgLabel: "Fotos para anexos (opcional)",
-    imgDrop: "Adicione fotos com drag-and-drop",
+    mdReady: "Markdown carregado",
+    imgLabel: "Imagens para evidências (opcional)",
+    imgDrop: "Adicione PNG, JPG ou WEBP com drag and drop",
+    imgDragging: "Solte as imagens para anexar",
     attachmentsSelected: "anexos selecionados",
     imgImporting: "Importando anexos",
-    noAttachment: "Nenhuma foto anexada.",
+    noAttachment: "Nenhuma evidência anexada.",
+    logoLabel: "Logo do documento (opcional)",
+    logoDrop: "Adicione PNG, JPG, WEBP ou SVG para personalizar o PDF",
+    logoDragging: "Solte a logo para usar no documento",
+    logoSelected: "Logo selecionada",
+    logoHint:
+      "A logo aparece no preview e no PDF final, mantendo os elementos visuais da NEXO.",
+    logoToneLabel: "Variante de fundo da marca",
+    logoToneDark: "Fundo escuro",
+    logoToneDarkHint: "Ideal para logos claras.",
+    logoToneLight: "Fundo claro",
+    logoToneLightHint: "Ideal para logos escuras.",
+    removeLogo: "Remover logo",
+    previewBrandTitle: "Cabeçalho do PDF",
+    previewBrandNexo: "NEXO permanece como assinatura da ferramenta",
+    previewBrandClient: "Marca personalizada do documento",
     remove: "Remover",
     contentMd: "Conteúdo markdown",
-    limits: "Limites:",
+    previewTitle: "Preview do PDF",
+    limits: "Limites",
     generate: "Gerar PDF",
-    converting: "Convertendo...",
+    generateMany: "Gerar PDFs",
+    converting: "Gerando PDF...",
+    convertingMany: "Gerando PDFs...",
     genProgress: "Progresso da geração",
-    bottomCta:
-      "Para governança completa, histórico, colaboração e templates do time, siga para os planos.",
     statusReady: "Pronto para converter.",
+    generatedTitle: "PDF pronto para download",
+    generatedCopy: "Arquivo gerado com sucesso e baixado automaticamente.",
+    generatedManyTitle: "PDFs prontos para download",
+    generatedManyCopy: "Arquivos gerados com sucesso e downloads iniciados automaticamente.",
+    plansKicker: "Planos e acesso",
+    plansTitle: "Comece no Free e avance para governança completa quando fizer sentido.",
+    plansCopy:
+      "O Free converte e valida o fluxo. Os planos pagos adicionam histórico, colaboração, templates e governança do time.",
+    plansNote: "Interessado no acesso completo? Entre na lista para receber atualizações.",
+    supportKicker: "Suporte e confiança",
+    supportTitle: "Comunicação institucional com clareza, suporte e privacidade explícita.",
+    supportCopy:
+      "A página reforça o posicionamento do produto e deixa evidente que o modo Free não persiste conteúdo.",
+    supportPoint1: "Nenhum conteúdo é salvo no modo Free",
+    supportPoint2: "Preview estável, sem quebrar o layout em mobile",
+    supportPoint3: "Apoio para dúvidas comerciais, suporte e segurança",
+    supportCta: "Falar com suporte",
+    pricingCardTitle: "Acesso completo",
+    pricingCardBody:
+      "Histórico, colaboração, templates e controles para o time operar com governança.",
+    waitlistCardTitle: "Lista de acesso",
+    waitlistCardBody:
+      "Receba novidades sobre acesso, planos e evolução do produto sem atrito.",
+    stickyCta: "Testar agora",
   },
   en: {
-    navProduct: "Home",
-    navFree: "Free",
+    navProduct: "Product",
+    navHow: "How it works",
+    navFree: "Free trial",
     navPlans: "Plans",
-    ctaAccess: "Get access",
-    ctaCreate: "Create account",
-    heroBadge: "NEXO FOR CRITICAL OPERATIONS",
-    heroTitle:
-      "Reliability decisions with executive language and clear execution.",
+    navSupport: "Support",
+    ctaPrimary: "Try now",
+    ctaSecondary: "See how it works",
+    ctaWaitlist: "Join the waitlist",
+    ctaPlans: "View plans",
+    heroBadge: "Markdown to institutional PDF in minutes",
+    heroTitle: "Turn technical documents into executive PDFs without rework.",
     heroCopy:
-      "Today many documents are generated in Markdown by AI, which is great for speed. NEXO turns that technical output into standardized, readable PDFs ready for institutional circulation.",
-    ctaTry: "Try for free",
-    pointsTitle: "Direct system value",
-    points1:
-      "Standardizes operational decisions and avoids informal alignment.",
-    points2: "Formalizes risk, rollback, owners, and financial impact.",
-    points3: "Publishes executive PDFs with attachments for immediate sharing.",
-    showcase1:
-      "Structured communication with objective, context, and directives.",
-    showcase2: "Change checklist with risk, monitoring, and rollback.",
-    showcase3: "Visual evidence and decision history ready to share.",
-    showcaseStatus: "Operation status",
-    sectionKicker: "Problem NEXO solves",
-    sectionTitle:
-      "When decisions are scattered, operations react late and revenue pays the bill.",
-    sectionCopy:
-      "Markdown is excellent for fast drafting, but PDF remains the most widely accepted format across organizations. NEXO bridges creation speed with communication standardization.",
-    card1t: "Fragmented decisions",
-    card1d:
-      "Multi-channel discussions create ambiguity about what was approved.",
-    card2t: "Execution without context",
-    card2d:
-      "Technical teams execute changes without full business and risk rationale.",
-    card3t: "Slow response to critical events",
-    card3d:
-      "Without a clear runbook, response time rises and financial impact grows.",
-    featureTabs: ["Reliability", "Operations", "Traceability", "Governance"],
-    featureTitle: "Value fronts",
-    featureItem1: "Critical-event monitoring",
-    featureItem2: "Explicit rollback plan",
-    featureItem3: "Defined owners per decision",
-    featureItem4: "Incident response runbook",
-    feat1t: "Reusable documentation",
-    feat1d:
-      "Use communication templates while preserving consistency and decision history.",
-    feat2t: "Business and tech visibility",
-    feat2d:
-      "One document serves executive decisions and operational execution without rework.",
-    feat3t: "Evidence-driven governance",
-    feat3d:
-      "Attachments and technical context stay consolidated for audit and continuous learning.",
-    freeKicker: "FREE CONVERTER",
-    freeTitle: "Try without login and validate the flow in minutes",
+      "NEXO takes markdown written by teams or AI, organizes the narrative, and delivers a standardized PDF ready for institutional circulation.",
+    heroValue1: "No-login flow in Free mode",
+    heroValue2: "Preview before generation",
+    heroValue3: "No content stored on the server",
+    heroFlowLabel: "Real workflow",
+    heroFlowTitle: "Markdown -> review -> institutional PDF",
+    heroFlowCopy:
+      "Upload the `.md`, attach evidence, review the content, and generate a structured document for leadership and operations.",
+    heroMockInput: "Technical input",
+    heroMockOutput: "Share-ready output",
+    heroMockStep1: "Objective, context, and impact",
+    heroMockStep2: "Risk, rollback, and owners",
+    heroMockStep3: "Visual evidence appended",
+    trustLabel: "Instant use",
+    trustValue: "No login",
+    problemKicker: "Problem",
+    problemTitle:
+      "Markdown speeds up drafting, but it does not solve institutional communication on its own.",
+    problemCopy:
+      "When decisions, risk, and evidence stay scattered, teams lose context, leadership loses clarity, and the final PDF becomes manual work.",
+    problem1t: "Fragmented decisions",
+    problem1d:
+      "Approvals and context get split across docs, chats, and tools.",
+    problem2t: "Inconsistent PDF output",
+    problem2d:
+      "Every document ships with a different structure and needs manual cleanup.",
+    problem3t: "Lower operational confidence",
+    problem3d:
+      "Without a standard, risk, rollback, and ownership are unclear for execution.",
+    solutionKicker: "Solution",
+    solutionTitle: "A simple flow from markdown draft to executive document.",
+    solutionCopy:
+      "The page now guides the user through the full story: problem, solution, immediate trial, plans, and support.",
+    stepsTitle: "How it works",
+    step1t: "1. Upload markdown",
+    step1d: "Accepts `.md` files and AI-generated text with instant preview.",
+    step2t: "2. Add evidence",
+    step2d: "Include images that reinforce technical or operational context.",
+    step3t: "3. Generate PDF",
+    step3d: "Get a structured PDF with clearer reading and institutional formatting.",
+    productKicker: "Product",
+    productTitle: "Built for clear communication across operations, product, and leadership.",
+    productCopy:
+      "The homepage now prioritizes one main CTA, reduces competing decisions, and shows the product before asking for commitment.",
+    productStat1: "Single primary CTA above the fold",
+    productStat2: "Visual markdown -> PDF flow preview",
+    productStat3: "Converter with upload feedback, progress, and confirmation",
+    benefitsKicker: "Benefits",
+    benefitsTitle: "Faster understanding, less friction.",
+    benefit1t: "Immediate standardization",
+    benefit1d:
+      "Documents keep a consistent structure even when the source is AI-generated markdown.",
+    benefit2t: "Executive readability",
+    benefit2d:
+      "Text, evidence, and decisions become easier to scan on desktop and mobile.",
+    benefit3t: "Privacy in Free mode",
+    benefit3d:
+      "Temporary processing during the session, without persisting file or attachment contents.",
+    freeKicker: "Free Converter",
+    freeTitle: "Try the full flow now without login",
     freeSubtitle:
-      "Upload markdown (including AI-generated drafts), attach evidence, and generate a consistent PDF to share.",
-    freeSecurityTitle: "Privacy in Free mode",
-    freeSecurity1: "No markdown content is saved in the database.",
-    freeSecurity2: "No uploaded images are stored after execution.",
-    freeSecurity3: "The generated PDF is not persisted on the server.",
-    freeSecurity4:
-      "We only record technical usage metadata for security and product improvement.",
+      "Upload markdown, attach evidence, review the preview, and generate a structured PDF in minutes.",
+    freeSecurityTitle: "Privacy and limits in Free mode",
+    freeSecurity1: "No markdown content is saved.",
+    freeSecurity2: "Images are not stored after generation.",
+    freeSecurity3: "Temporary processing during the session.",
+    freeSecurity4: "We only log technical usage events to measure the experience.",
+    docsLabel: "Markdown documents",
+    docsHelper:
+      "Up to 3 documents per run. Each document keeps its own attachments.",
+    docsAdd: "Add document",
+    docsRemove: "Remove document",
+    docsLimitReached: "Document limit reached in Free mode.",
+    docsTotalChars: "Bundle total",
+    docsActive: "Active document",
+    docsAttachmentsHint: "Attachments below belong only to the active document.",
+    docsPreviewHint: "The preview shows how the final PDF will be laid out.",
+    docDefaultName: "document",
+    docUntitled: "Untitled document",
+    noMdYet: "No markdown loaded yet.",
+    previewEmpty:
+      "Upload a .md file or paste content to preview the PDF composition.",
     mdLabel: "Markdown file (.md)",
-    mdDrop: "Click to select or drop a `.md` file here",
-    mdCurrent: "Current file:",
+    mdDrop: "Tap to select or drag a `.md` file",
+    mdDragging: "Drop the file to import",
+    mdCurrent: "Current file",
     mdImporting: "Importing markdown",
-    imgLabel: "Images for attachments (optional)",
-    imgDrop: "Add images via drag and drop",
+    mdReady: "Markdown loaded",
+    imgLabel: "Images for evidence (optional)",
+    imgDrop: "Add PNG, JPG, or WEBP with drag and drop",
+    imgDragging: "Drop images to attach",
     attachmentsSelected: "attachments selected",
     imgImporting: "Importing attachments",
-    noAttachment: "No image attached.",
+    noAttachment: "No evidence attached.",
+    logoLabel: "Document logo (optional)",
+    logoDrop: "Add PNG, JPG, WEBP, or SVG to personalize the PDF",
+    logoDragging: "Drop the logo to use it in the document",
+    logoSelected: "Selected logo",
+    logoHint:
+      "The logo appears in the preview and final PDF while keeping NEXO visual elements.",
+    logoToneLabel: "Brand background variant",
+    logoToneDark: "Dark surface",
+    logoToneDarkHint: "Best for light logos.",
+    logoToneLight: "Light surface",
+    logoToneLightHint: "Best for dark logos.",
+    removeLogo: "Remove logo",
+    previewBrandTitle: "PDF header",
+    previewBrandNexo: "NEXO remains as the product signature",
+    previewBrandClient: "Custom document brand",
     remove: "Remove",
     contentMd: "Markdown content",
-    limits: "Limits:",
+    previewTitle: "PDF preview",
+    limits: "Limits",
     generate: "Generate PDF",
-    converting: "Converting...",
+    generateMany: "Generate PDFs",
+    converting: "Generating PDF...",
+    convertingMany: "Generating PDFs...",
     genProgress: "Generation progress",
-    bottomCta:
-      "For full governance, history, collaboration, and team templates, continue to plans.",
     statusReady: "Ready to convert.",
+    generatedTitle: "PDF ready to download",
+    generatedCopy: "File generated successfully and downloaded automatically.",
+    generatedManyTitle: "PDFs ready to download",
+    generatedManyCopy: "Files generated successfully and downloads started automatically.",
+    plansKicker: "Plans and access",
+    plansTitle: "Start in Free and move to full governance when it makes sense.",
+    plansCopy:
+      "Free validates the workflow. Paid plans add history, collaboration, templates, and team governance.",
+    plansNote: "Interested in full access? Join the waitlist to receive updates.",
+    supportKicker: "Support and trust",
+    supportTitle: "Institutional communication with clarity, support, and explicit privacy.",
+    supportCopy:
+      "The page reinforces product positioning and makes it clear that Free mode does not persist content.",
+    supportPoint1: "No content is saved in Free mode",
+    supportPoint2: "Stable preview without breaking the mobile layout",
+    supportPoint3: "Support for commercial, product, and security questions",
+    supportCta: "Talk to support",
+    pricingCardTitle: "Full access",
+    pricingCardBody:
+      "History, collaboration, templates, and controls for team governance.",
+    waitlistCardTitle: "Access waitlist",
+    waitlistCardBody:
+      "Receive updates about access, plans, and product evolution with low friction.",
+    stickyCta: "Try now",
   },
 } as const;
 
@@ -206,7 +375,6 @@ function readFileAsDataUrl(file: File, onProgress?: (percent: number) => void) {
     };
 
     reader.onerror = () => reject(new Error("file_read_failed"));
-
     reader.onprogress = (event) => {
       if (!event.lengthComputable || event.total <= 0) {
         return;
@@ -231,7 +399,6 @@ function readFileAsText(file: File, onProgress?: (percent: number) => void) {
     };
 
     reader.onerror = () => reject(new Error("file_read_failed"));
-
     reader.onprogress = (event) => {
       if (!event.lengthComputable || event.total <= 0) {
         return;
@@ -244,6 +411,29 @@ function readFileAsText(file: File, onProgress?: (percent: number) => void) {
 
     reader.readAsText(file);
   });
+}
+
+function inferMimeType(file: File) {
+  const explicit = file.type.toLowerCase();
+  if (explicit) {
+    return explicit;
+  }
+
+  const lowerName = file.name.toLowerCase();
+  if (lowerName.endsWith(".svg")) {
+    return "image/svg+xml";
+  }
+  if (lowerName.endsWith(".png")) {
+    return "image/png";
+  }
+  if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg")) {
+    return "image/jpeg";
+  }
+  if (lowerName.endsWith(".webp")) {
+    return "image/webp";
+  }
+
+  return "application/octet-stream";
 }
 
 function getAttachmentSizeBytes(attachment: AttachmentPreview) {
@@ -267,101 +457,274 @@ function getAttachmentSizeBytes(attachment: AttachmentPreview) {
   return Math.max(0, Math.floor((base64.length * 3) / 4) - padding);
 }
 
+function createDocumentDraft(fileName = "comunicado-operacional.md"): MarkdownDocument {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    fileName,
+    markdown: "",
+    attachments: [],
+  };
+}
+
 export default function HomePage() {
   useScrollDeck();
   const pathname = usePathname();
   const { locale } = useLocale();
   const c = copy[locale];
   const formatLocale = locale === "pt" ? "pt-BR" : "en-US";
-  const [markdown, setMarkdown] = useState(
-    "# Release Notes\n\n- Ajuste no fluxo principal\n- Correção na API\n- Atualização de textos da tela inicial",
-  );
-  const [fileName, setFileName] = useState("release-notes.md");
-  const [attachments, setAttachments] = useState<AttachmentPreview[]>([]);
+  const isHomeActive = pathname === "/";
+
+  const [documents, setDocuments] = useState<MarkdownDocument[]>(() => {
+    const initialDocument = createDocumentDraft();
+    return [initialDocument];
+  });
+  const [activeDocumentId, setActiveDocumentId] = useState<string>("");
+  const [customLogo, setCustomLogo] = useState<LogoPreview | null>(null);
+  const [customLogoTone, setCustomLogoTone] = useState<LogoTone>("light");
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<string>(c.statusReady);
+  const [statusMessage, setStatusMessage] = useState<string>(c.statusReady);
+  const [statusKind, setStatusKind] = useState<StatusKind>("neutral");
   const [mdImportProgress, setMdImportProgress] = useState<number | null>(null);
   const [attachmentsImportProgress, setAttachmentsImportProgress] = useState<
     number | null
   >(null);
+  const [logoImportProgress, setLogoImportProgress] = useState<number | null>(
+    null,
+  );
   const [convertProgress, setConvertProgress] = useState<number | null>(null);
   const [isMdDragOver, setIsMdDragOver] = useState(false);
   const [isImageDragOver, setIsImageDragOver] = useState(false);
-  const isHomeActive = pathname === "/";
+  const [isLogoDragOver, setIsLogoDragOver] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [lastGeneratedFile, setLastGeneratedFile] = useState<string | null>(
+    null,
+  );
 
   const markdownInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const trackedScroll50Ref = useRef(false);
+  const trackedScroll90Ref = useRef(false);
+
+  const activeDocument =
+    documents.find((item) => item.id === activeDocumentId) ?? documents[0];
+  const markdown = activeDocument?.markdown ?? "";
+  const fileName = activeDocument?.fileName ?? "comunicado-operacional.md";
+  const attachments = activeDocument?.attachments ?? [];
+  const previewHtml = markdown.trim()
+    ? previewMarkdownParser.render(markdown)
+    : "";
 
   const markdownLength = markdown.length;
+  const totalMarkdownChars = documents.reduce(
+    (sum, item) => sum + item.markdown.length,
+    0,
+  );
   const markdownNearLimit =
     markdownLength > Math.floor(FREE_LIMITS.markdown.maxChars * 0.9);
+  const totalAttachmentBytes = documents.reduce(
+    (sum, document) =>
+      sum +
+      document.attachments.reduce(
+        (docSum, item) => docSum + getAttachmentSizeBytes(item),
+        0,
+      ),
+    0,
+  );
 
-  useEffect(() => {
+  function updateStatus(message: string, kind: StatusKind = "neutral") {
+    setStatusMessage(message);
+    setStatusKind(kind);
+  }
+
+  function trackHomeEvent(eventName: string, payload?: Record<string, unknown>) {
     void trackEvent({
-      eventName: "page_view",
+      eventName,
       eventSource: "web_ui",
       path: "/",
-      payload: { page: "home" },
+      payload: { page: "home", ...(payload ?? {}) },
     });
+  }
+
+  useEffect(() => {
+    trackHomeEvent("page_view");
   }, []);
 
   useEffect(() => {
-    if (!status) {
-      setStatus(c.statusReady);
+    const onScroll = () => {
+      const maxScroll =
+        document.documentElement.scrollHeight - window.innerHeight;
+      if (maxScroll <= 0) {
+        return;
+      }
+
+      const progress = window.scrollY / maxScroll;
+
+      if (!trackedScroll50Ref.current && progress >= 0.5) {
+        trackedScroll50Ref.current = true;
+        trackHomeEvent("scroll_50");
+      }
+
+      if (!trackedScroll90Ref.current && progress >= 0.9) {
+        trackedScroll90Ref.current = true;
+        trackHomeEvent("scroll_90");
+      }
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    updateStatus(c.statusReady, "neutral");
+    setLastGeneratedFile(null);
+  }, [locale]);
+
+  useEffect(() => {
+    if (!documents.some((item) => item.id === activeDocumentId)) {
+      setActiveDocumentId(documents[0]?.id ?? "");
     }
-  }, [c.statusReady, status]);
+  }, [activeDocumentId, documents]);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) {
+      return;
+    }
+
+    const onResize = () => {
+      if (window.innerWidth >= 980) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [mobileMenuOpen]);
+
+  function closeMenu() {
+    setMobileMenuOpen(false);
+  }
+
+  function updateActiveDocument(
+    updater: (document: MarkdownDocument) => MarkdownDocument,
+  ) {
+    if (!activeDocument) {
+      return;
+    }
+
+    setDocuments((prev) =>
+      prev.map((item) => (item.id === activeDocument.id ? updater(item) : item)),
+    );
+  }
+
+  function addDocument() {
+    if (documents.length >= FREE_LIMITS.documents.maxFiles) {
+      updateStatus(c.docsLimitReached, "error");
+      return;
+    }
+
+    const nextDocument = createDocumentDraft(
+      `${c.docDefaultName}-${documents.length + 1}.md`,
+    );
+    setDocuments((prev) => [...prev, nextDocument]);
+    setActiveDocumentId(nextDocument.id);
+    updateStatus(
+      locale === "pt"
+        ? `Documento ${documents.length + 1} adicionado.`
+        : `Document ${documents.length + 1} added.`,
+      "success",
+    );
+  }
+
+  function removeDocument(documentId: string) {
+    if (documents.length <= 1) {
+      return;
+    }
+
+    setDocuments((prev) => prev.filter((item) => item.id !== documentId));
+    if (activeDocumentId === documentId) {
+      const fallback = documents.find((item) => item.id !== documentId);
+      setActiveDocumentId(fallback?.id ?? "");
+    }
+  }
 
   async function handleMarkdownFile(file: File) {
-    if (!file) {
+    if (!file || !activeDocument) {
       return;
     }
 
     setMdImportProgress(0);
-    setStatus(`${c.mdImporting}: ${file.name}`);
+    updateStatus(`${c.mdImporting}: ${file.name}`, "loading");
 
     try {
       const text = await readFileAsText(file, setMdImportProgress);
       if (text.length > FREE_LIMITS.markdown.maxChars) {
-        setStatus(
+        updateStatus(
           locale === "pt"
             ? `Markdown excede o limite de ${FREE_LIMITS.markdown.maxChars.toLocaleString("pt-BR")} caracteres.`
             : `Markdown exceeds the limit of ${FREE_LIMITS.markdown.maxChars.toLocaleString("en-US")} characters.`,
+          "error",
         );
         setMdImportProgress(null);
         return;
       }
 
-      setMarkdown(text);
-      setFileName(file.name);
+      updateActiveDocument((document) => ({
+        ...document,
+        markdown: text,
+        fileName: file.name,
+      }));
       setMdImportProgress(100);
-      setStatus(
-        locale === "pt"
-          ? `Arquivo markdown carregado: ${file.name}`
-          : `Markdown file loaded: ${file.name}`,
-      );
+      updateStatus(`${c.mdReady}: ${file.name}`, "success");
+      trackHomeEvent("upload_markdown", {
+        file_name: file.name,
+        size_bytes: file.size,
+        document_id: activeDocument.id,
+      });
       window.setTimeout(() => setMdImportProgress(null), 700);
     } catch {
-      setStatus(
+      updateStatus(
         locale === "pt"
           ? "Falha ao importar o arquivo markdown."
           : "Failed to import markdown file.",
+        "error",
       );
       setMdImportProgress(null);
     }
   }
 
   async function handleAttachmentFiles(files: File[]) {
-    if (files.length === 0) {
+    if (files.length === 0 || !activeDocument) {
+      return;
+    }
+
+    const totalAttachmentCount = documents.reduce(
+      (sum, document) => sum + document.attachments.length,
+      0,
+    );
+    if (totalAttachmentCount >= FREE_LIMITS.attachments.maxFiles) {
+      updateStatus(
+        locale === "pt"
+          ? `Limite total de ${FREE_LIMITS.attachments.maxFiles} anexos atingido.`
+          : `Total limit of ${FREE_LIMITS.attachments.maxFiles} attachments reached.`,
+        "error",
+      );
       return;
     }
 
     const remainingSlots =
-      FREE_LIMITS.attachments.maxFiles - attachments.length;
+      Math.min(
+        FREE_LIMITS.attachments.maxFilesPerDocument - attachments.length,
+        FREE_LIMITS.attachments.maxFiles - totalAttachmentCount,
+      );
     if (remainingSlots <= 0) {
-      setStatus(
+      updateStatus(
         locale === "pt"
-          ? `Limite de ${FREE_LIMITS.attachments.maxFiles} anexos atingido.`
-          : `Limit of ${FREE_LIMITS.attachments.maxFiles} attachments reached.`,
+          ? `Limite de ${FREE_LIMITS.attachments.maxFilesPerDocument} anexos neste documento.`
+          : `Limit of ${FREE_LIMITS.attachments.maxFilesPerDocument} attachments in this document.`,
+        "error",
       );
       return;
     }
@@ -369,7 +732,7 @@ export default function HomePage() {
     const selected = files.slice(0, remainingSlots);
     const rejected: string[] = [];
     const acceptedFiles = selected.filter((file) => {
-      const mimeType = file.type.toLowerCase();
+      const mimeType = inferMimeType(file);
       if (
         !FREE_LIMITS.attachments.allowedMimeTypes.includes(
           mimeType as (typeof FREE_LIMITS.attachments.allowedMimeTypes)[number],
@@ -395,25 +758,22 @@ export default function HomePage() {
       return true;
     });
 
-    const currentTotalBytes = attachments.reduce(
-      (sum, item) => sum + getAttachmentSizeBytes(item),
-      0,
-    );
     const nextTotalBytes = acceptedFiles.reduce(
       (sum, file) => sum + file.size,
-      currentTotalBytes,
+      totalAttachmentBytes,
     );
     if (nextTotalBytes > FREE_LIMITS.attachments.maxTotalBytes) {
-      setStatus(
+      updateStatus(
         locale === "pt"
           ? `Total de anexos excede ${formatBytes(FREE_LIMITS.attachments.maxTotalBytes)}. Remova arquivos e tente novamente.`
           : `Total attachments exceed ${formatBytes(FREE_LIMITS.attachments.maxTotalBytes)}. Remove files and try again.`,
+        "error",
       );
       return;
     }
 
     if (acceptedFiles.length === 0) {
-      setStatus(
+      updateStatus(
         rejected.length > 0
           ? locale === "pt"
             ? `Nenhum anexo aceito. ${rejected.join("; ")}`
@@ -421,15 +781,17 @@ export default function HomePage() {
           : locale === "pt"
             ? "Nenhum anexo válido selecionado."
             : "No valid attachment selected.",
+        "error",
       );
       return;
     }
 
     setAttachmentsImportProgress(0);
-    setStatus(
+    updateStatus(
       locale === "pt"
         ? `Importando ${acceptedFiles.length} anexo(s)...`
         : `Importing ${acceptedFiles.length} attachment(s)...`,
+      "loading",
     );
 
     try {
@@ -446,39 +808,101 @@ export default function HomePage() {
         next.push({
           id: `${Date.now()}-${index}-${file.name}`,
           fileName: file.name,
-          mimeType: file.type || "application/octet-stream",
+          mimeType: inferMimeType(file),
           dataUrl,
           sizeBytes: file.size,
         });
       }
 
-      setAttachments((prev) =>
-        [...prev, ...next].slice(0, FREE_LIMITS.attachments.maxFiles),
-      );
+      updateActiveDocument((document) => ({
+        ...document,
+        attachments: [...document.attachments, ...next].slice(
+          0,
+          FREE_LIMITS.attachments.maxFilesPerDocument,
+        ),
+      }));
       setAttachmentsImportProgress(100);
-
-      if (rejected.length > 0) {
-        setStatus(
-          locale === "pt"
+      updateStatus(
+        rejected.length > 0
+          ? locale === "pt"
             ? `${next.length} anexo(s) carregado(s). Ignorados: ${rejected.join("; ")}`
-            : `${next.length} attachment(s) loaded. Ignored: ${rejected.join("; ")}`,
-        );
-      } else {
-        setStatus(
-          locale === "pt"
+            : `${next.length} attachment(s) loaded. Ignored: ${rejected.join("; ")}`
+          : locale === "pt"
             ? `${next.length} anexo(s) carregado(s).`
             : `${next.length} attachment(s) loaded.`,
-        );
-      }
-
+        "success",
+      );
       window.setTimeout(() => setAttachmentsImportProgress(null), 700);
     } catch {
-      setStatus(
+      updateStatus(
         locale === "pt"
           ? "Falha ao importar anexos."
           : "Failed to import attachments.",
+        "error",
       );
       setAttachmentsImportProgress(null);
+    }
+  }
+
+  async function handleCustomLogo(file: File) {
+    if (!file) {
+      return;
+    }
+
+    const mimeType = inferMimeType(file);
+    if (
+      !FREE_LIMITS.branding.allowedMimeTypes.includes(
+        mimeType as (typeof FREE_LIMITS.branding.allowedMimeTypes)[number],
+      )
+    ) {
+      updateStatus(
+        locale === "pt"
+          ? `Formato de logo não permitido. Tipos aceitos: ${FREE_LIMITS.branding.allowedMimeTypes.join(", ")}.`
+          : `Unsupported logo type. Accepted types: ${FREE_LIMITS.branding.allowedMimeTypes.join(", ")}.`,
+        "error",
+      );
+      return;
+    }
+
+    if (file.size > FREE_LIMITS.branding.maxLogoBytes) {
+      updateStatus(
+        locale === "pt"
+          ? `Logo acima de ${formatBytes(FREE_LIMITS.branding.maxLogoBytes)}.`
+          : `Logo exceeds ${formatBytes(FREE_LIMITS.branding.maxLogoBytes)}.`,
+        "error",
+      );
+      return;
+    }
+
+    setLogoImportProgress(0);
+    updateStatus(
+      locale === "pt" ? `Importando logo: ${file.name}` : `Importing logo: ${file.name}`,
+      "loading",
+    );
+
+    try {
+      const dataUrl = await readFileAsDataUrl(file, setLogoImportProgress);
+      setCustomLogo({
+        id: `${Date.now()}-logo-${file.name}`,
+        fileName: file.name,
+        mimeType,
+        dataUrl,
+        sizeBytes: file.size,
+      });
+      setLogoImportProgress(100);
+      updateStatus(
+        locale === "pt"
+          ? `Logo aplicada ao documento: ${file.name}`
+          : `Logo applied to the document: ${file.name}`,
+        "success",
+      );
+      window.setTimeout(() => setLogoImportProgress(null), 700);
+    } catch {
+      updateStatus(
+        locale === "pt" ? "Falha ao importar logo." : "Failed to import logo.",
+        "error",
+      );
+      setLogoImportProgress(null);
     }
   }
 
@@ -498,8 +922,25 @@ export default function HomePage() {
     event.target.value = "";
   }
 
+  async function onLogoChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    await handleCustomLogo(file);
+    event.target.value = "";
+  }
+
   function removeAttachment(id: string) {
-    setAttachments((prev) => prev.filter((item) => item.id !== id));
+    updateActiveDocument((document) => ({
+      ...document,
+      attachments: document.attachments.filter((item) => item.id !== id),
+    }));
+  }
+
+  function removeCustomLogo() {
+    setCustomLogo(null);
   }
 
   function preventDragDefaults(event: DragEvent<HTMLElement>) {
@@ -517,10 +958,11 @@ export default function HomePage() {
         file.name.toLowerCase().endsWith(".md") || file.type.includes("text"),
     );
     if (!candidate) {
-      setStatus(
+      updateStatus(
         locale === "pt"
           ? "Arraste um arquivo .md válido."
           : "Drop a valid .md file.",
+        "error",
       );
       return;
     }
@@ -531,69 +973,112 @@ export default function HomePage() {
   async function onImageDrop(event: DragEvent<HTMLElement>) {
     preventDragDefaults(event);
     setIsImageDragOver(false);
-
     const files = Array.from(event.dataTransfer.files ?? []);
     await handleAttachmentFiles(files);
+  }
+
+  async function onLogoDrop(event: DragEvent<HTMLElement>) {
+    preventDragDefaults(event);
+    setIsLogoDragOver(false);
+
+    const file = Array.from(event.dataTransfer.files ?? [])[0];
+    if (!file) {
+      return;
+    }
+
+    await handleCustomLogo(file);
   }
 
   async function convertToPdf(event: FormEvent) {
     event.preventDefault();
 
-    if (markdown.trim().length === 0) {
-      setStatus(
+    if (documents.some((item) => item.markdown.trim().length === 0)) {
+      updateStatus(
         locale === "pt"
-          ? "Informe conteúdo markdown para gerar o PDF."
-          : "Provide markdown content to generate the PDF.",
+          ? "Todos os documentos precisam ter markdown antes da geração."
+          : "Every document needs markdown content before generation.",
+        "error",
       );
       return;
     }
 
-    if (markdown.length > FREE_LIMITS.markdown.maxChars) {
-      setStatus(
+    if (documents.some((item) => item.markdown.length > FREE_LIMITS.markdown.maxChars)) {
+      updateStatus(
         locale === "pt"
-          ? `Markdown acima do limite de ${FREE_LIMITS.markdown.maxChars.toLocaleString("pt-BR")} caracteres.`
-          : `Markdown is above the limit of ${FREE_LIMITS.markdown.maxChars.toLocaleString("en-US")} characters.`,
+          ? `Um dos documentos excede ${FREE_LIMITS.markdown.maxChars.toLocaleString("pt-BR")} caracteres.`
+          : `One document exceeds ${FREE_LIMITS.markdown.maxChars.toLocaleString("en-US")} characters.`,
+        "error",
       );
       return;
     }
 
-    const totalAttachmentBytes = attachments.reduce(
-      (sum, item) => sum + getAttachmentSizeBytes(item),
-      0,
-    );
+    if (totalMarkdownChars > FREE_LIMITS.documents.maxTotalChars) {
+      updateStatus(
+        locale === "pt"
+          ? `O pacote excede ${FREE_LIMITS.documents.maxTotalChars.toLocaleString("pt-BR")} caracteres no total.`
+          : `The bundle exceeds ${FREE_LIMITS.documents.maxTotalChars.toLocaleString("en-US")} characters in total.`,
+        "error",
+      );
+      return;
+    }
+
     if (totalAttachmentBytes > FREE_LIMITS.attachments.maxTotalBytes) {
-      setStatus(
+      updateStatus(
         locale === "pt"
           ? `Total de anexos acima de ${formatBytes(FREE_LIMITS.attachments.maxTotalBytes)}.`
           : `Total attachments above ${formatBytes(FREE_LIMITS.attachments.maxTotalBytes)}.`,
+        "error",
       );
       return;
     }
 
     setLoading(true);
     setConvertProgress(2);
-    setStatus(
+    setLastGeneratedFile(null);
+    updateStatus(
       locale === "pt"
-        ? "Enviando conteúdo para geração..."
-        : "Uploading content for generation...",
+        ? documents.length > 1
+          ? "Enviando conteúdos para geração..."
+          : "Enviando conteúdo para geração..."
+        : documents.length > 1
+          ? "Uploading files for generation..."
+          : "Uploading content for generation...",
+      "loading",
     );
+    trackHomeEvent("gerar_pdf", {
+      markdown_chars: totalMarkdownChars,
+      documents_count: documents.length,
+      attachments_count: documents.reduce(
+        (sum, item) => sum + item.attachments.length,
+        0,
+      ),
+      has_custom_logo: Boolean(customLogo),
+    });
 
-    try {
+    const requestPdf = async (
+      documentsPayload: Array<{
+        markdown: string;
+        fileName: string;
+        attachments: { fileName: string; mimeType: string; dataUrl: string }[];
+      }>,
+      progressBase = 2,
+      progressCap = 100,
+    ) => {
       const payload = {
-        markdown,
-        fileName,
-        attachments: attachments.map<AttachmentPayload>(
-          ({ fileName: name, mimeType, dataUrl }) => ({
-            fileName: name,
-            mimeType,
-            dataUrl,
-          }),
-        ),
+        documents: documentsPayload,
+        customLogo: customLogo
+          ? {
+              fileName: customLogo.fileName,
+              mimeType: customLogo.mimeType,
+              dataUrl: customLogo.dataUrl,
+              tone: customLogoTone,
+            }
+          : undefined,
       };
 
       const body = JSON.stringify(payload);
 
-      const blob = await new Promise<Blob>((resolve, reject) => {
+      return new Promise<Blob>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open("POST", "/api/free/convert");
         xhr.responseType = "blob";
@@ -614,15 +1099,18 @@ export default function HomePage() {
             return;
           }
 
+          const progressSpan = Math.max(1, progressCap - progressBase - 5);
           const progress = Math.min(
-            78,
-            Math.round((uploadEvent.loaded / uploadEvent.total) * 78),
+            progressCap - 5,
+            progressBase +
+              Math.round((uploadEvent.loaded / uploadEvent.total) * progressSpan),
           );
           setConvertProgress((prev) => Math.max(prev ?? 2, progress));
-          setStatus(
+          updateStatus(
             locale === "pt"
               ? `Enviando conteúdo: ${progress}%`
               : `Uploading content: ${progress}%`,
+            "loading",
           );
         };
 
@@ -635,12 +1123,21 @@ export default function HomePage() {
           }
 
           processingStarted = true;
-          setStatus(locale === "pt" ? "Gerando PDF..." : "Generating PDF...");
+          updateStatus(
+            locale === "pt"
+              ? documentsPayload.length > 1
+                ? "Gerando PDFs..."
+                : "Gerando PDF..."
+              : documentsPayload.length > 1
+                ? "Generating PDFs..."
+                : "Generating PDF...",
+            "loading",
+          );
 
           processingTimer = window.setInterval(() => {
             setConvertProgress((prev) => {
-              const current = prev ?? 78;
-              return current >= 95 ? current : current + 1;
+              const current = prev ?? progressBase;
+              return current >= progressCap - 1 ? current : current + 1;
             });
           }, 220);
         };
@@ -681,21 +1178,68 @@ export default function HomePage() {
 
         xhr.send(body);
       });
+    };
 
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = fileName.replace(/\.md$/i, "") + ".pdf";
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(url);
+    try {
+      const documentsPayload = documents.map((document) => ({
+        markdown: document.markdown,
+        fileName: document.fileName,
+        attachments: document.attachments.map(
+          ({ fileName: name, mimeType, dataUrl }) => ({
+            fileName: name,
+            mimeType,
+            dataUrl,
+          }),
+        ),
+      }));
 
-      setStatus(
-        locale === "pt"
-          ? "PDF gerado com sucesso (anexos incluídos no final)."
-          : "PDF generated successfully (attachments included at the end).",
-      );
+      const triggerDownload = (blob: Blob, downloadName: string) => {
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = downloadName;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+      };
+
+      if (documents.length === 1) {
+        const blob = await requestPdf(documentsPayload);
+        const downloadName = `${fileName.replace(/\.md$/i, "")}.pdf`;
+        triggerDownload(blob, downloadName);
+        setLastGeneratedFile(downloadName);
+        updateStatus(
+          locale === "pt"
+            ? "PDF gerado com sucesso. Download iniciado."
+            : "PDF generated successfully. Download started.",
+          "success",
+        );
+      } else {
+        const downloadNames: string[] = [];
+        for (const [index, document] of documentsPayload.entries()) {
+          const progressBase = Math.round((index / documentsPayload.length) * 100);
+          const progressCap = Math.round(((index + 1) / documentsPayload.length) * 100);
+          updateStatus(
+            locale === "pt"
+              ? `Gerando PDF ${index + 1} de ${documentsPayload.length}...`
+              : `Generating PDF ${index + 1} of ${documentsPayload.length}...`,
+            "loading",
+          );
+          const blob = await requestPdf([document], progressBase, progressCap);
+          const downloadName = `${document.fileName.replace(/\.md$/i, "")}.pdf`;
+          triggerDownload(blob, downloadName);
+          downloadNames.push(downloadName);
+        }
+        setConvertProgress(100);
+        setLastGeneratedFile(downloadNames.join(", "));
+        updateStatus(
+          locale === "pt"
+            ? "PDFs gerados com sucesso. Downloads iniciados."
+            : "PDFs generated successfully. Downloads started.",
+          "success",
+        );
+      }
       window.setTimeout(() => setConvertProgress(null), 1200);
     } catch (error) {
       const message =
@@ -704,10 +1248,11 @@ export default function HomePage() {
           : locale === "pt"
             ? "Erro inesperado"
             : "Unexpected error";
-      setStatus(
+      updateStatus(
         locale === "pt"
           ? `Falha na conversão: ${message}`
           : `Conversion failed: ${message}`,
+        "error",
       );
       setConvertProgress(null);
     } finally {
@@ -715,166 +1260,270 @@ export default function HomePage() {
     }
   }
 
-  function trackGoToPricing(area: string) {
-    void trackEvent({
-      eventName: "go_to_pricing",
-      eventSource: "web_ui",
-      path: "/",
-      payload: { page: "home", area },
-    });
+  function trackPrimaryCta(area: string) {
+    trackHomeEvent("click_testar_gratis", { area });
+  }
+
+  function trackPricing(area: string) {
+    trackHomeEvent("open_pricing", { area });
+  }
+
+  function trackWaitlist(area: string) {
+    trackHomeEvent("entrar_lista", { area });
+  }
+
+  function trackSupport(area: string) {
+    trackHomeEvent("open_support", { area });
   }
 
   return (
     <>
       <main className="sales-page motion-root">
         <div className="page-nav-shell motion rise-1">
-          <header className="hero-nav">
+          <header className="hero-nav landing-nav">
             <Link href="/" className="hero-brand hero-brand-link">
               <img alt="NEXO" src="/brand/nexo_logo_primary.svg" />
               <strong>NEXO</strong>
             </Link>
-            <nav>
-              <Link
-                href="/"
-                className={isHomeActive ? "nav-link-active" : undefined}
-                aria-current={isHomeActive ? "page" : undefined}
-              >
-                {c.navProduct}
-              </Link>
-              <a href="#free-converter">{c.navFree}</a>
-              <Link href="/pricing">{c.navPlans}</Link>
-            </nav>
-            <div className="hero-nav-actions">
-              <LocaleToggle />
-              <ThemeToggle />
-              <Link
-                className="btn-nav-ghost"
-                href="/pricing"
-                onClick={() => trackGoToPricing("nav_access")}
-              >
-                {c.ctaAccess}
-              </Link>
-              <Link
-                className="btn-nav-solid"
-                href="/pricing"
-                onClick={() => trackGoToPricing("nav_create")}
-              >
-                {c.ctaCreate}
-              </Link>
+
+            <button
+              className="nav-menu-toggle"
+              type="button"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="landing-nav-links"
+              onClick={() => setMobileMenuOpen((open) => !open)}
+            >
+              <span />
+              <span />
+              <span />
+            </button>
+
+            <div
+              className={`landing-nav-panel ${mobileMenuOpen ? "is-open" : ""}`}
+              id="landing-nav-links"
+            >
+              <nav>
+                <Link
+                  href="/"
+                  className={isHomeActive ? "nav-link-active" : undefined}
+                  aria-current={isHomeActive ? "page" : undefined}
+                  onClick={closeMenu}
+                >
+                  {c.navProduct}
+                </Link>
+                <a href="#como-funciona" onClick={closeMenu}>
+                  {c.navHow}
+                </a>
+                <a href="#free-converter" onClick={closeMenu}>
+                  {c.navFree}
+                </a>
+                <a href="#suporte" onClick={closeMenu}>
+                  {c.navSupport}
+                </a>
+                <Link
+                  href="/pricing"
+                  onClick={() => {
+                    closeMenu();
+                    trackPricing("nav");
+                  }}
+                >
+                  {c.navPlans}
+                </Link>
+              </nav>
+
+              <div className="hero-nav-actions">
+                <LocaleToggle />
+                <ThemeToggle />
+                <Link
+                  className="btn-nav-ghost"
+                  href="/pricing"
+                  onClick={() => {
+                    closeMenu();
+                    trackWaitlist("nav");
+                  }}
+                >
+                  {c.ctaWaitlist}
+                </Link>
+                <a
+                  className="btn-nav-solid"
+                  href="#free-converter"
+                  onClick={() => {
+                    closeMenu();
+                    trackPrimaryCta("nav");
+                  }}
+                >
+                  {c.ctaPrimary}
+                </a>
+              </div>
             </div>
           </header>
         </div>
 
         <section className="nexo-hero-wrap section-transition motion rise-1">
-          <div className="hero-grid motion rise-2" data-deck-group>
-            <div className="deck-card">
+          <div className="hero-grid landing-hero-grid" data-deck-group>
+            <div className="deck-card hero-copy-card">
               <p className="hero-badge">{c.heroBadge}</p>
               <h1>{c.heroTitle}</h1>
               <p className="hero-copy">{c.heroCopy}</p>
+
               <div className="hero-cta-row">
-                <a className="btn-cta-main" href="#free-converter">
-                  {c.ctaTry}
-                </a>
-                <Link
-                  className="btn-cta-alt"
-                  href="/pricing"
-                  onClick={() => trackGoToPricing("hero_access")}
+                <a
+                  className="btn-cta-main"
+                  href="#free-converter"
+                  onClick={() => trackPrimaryCta("hero")}
                 >
-                  {c.ctaAccess}
-                </Link>
+                  {c.ctaPrimary}
+                </a>
+                <a className="btn-cta-alt" href="#como-funciona">
+                  {c.ctaSecondary}
+                </a>
+              </div>
+
+              <div className="hero-proof-list">
+                <span>{c.heroValue1}</span>
+                <span>{c.heroValue2}</span>
+                <span>{c.heroValue3}</span>
               </div>
             </div>
 
-            <aside className="hero-points deck-card">
-              <h2>{c.pointsTitle}</h2>
-              <ul>
-                <li>{c.points1}</li>
-                <li>{c.points2}</li>
-                <li>{c.points3}</li>
-              </ul>
-            </aside>
-          </div>
-
-          <div className="hero-showcase motion rise-3 deck-card" id="contexto">
-            <div className="showcase-bar">
-              <span />
-              <span />
-              <span />
-              <strong>terminal://nexo/comunicado-v1</strong>
-            </div>
-            <div className="showcase-content">
-              <div>
-                <p>{c.showcase1}</p>
-                <p>{c.showcase2}</p>
-                <p>{c.showcase3}</p>
+            <aside className="hero-visual deck-card">
+              <div className="hero-visual-head">
+                <small>{c.heroFlowLabel}</small>
+                <strong>{c.heroFlowTitle}</strong>
+                <p>{c.heroFlowCopy}</p>
               </div>
-              <div className="showcase-progress">
-                <small>{c.showcaseStatus}</small>
-                <div>
-                  <span style={{ width: `${convertProgress ?? 64}%` }} />
+
+              <div className="hero-flow-canvas" aria-hidden="true">
+                <div className="hero-flow-card">
+                  <span>{c.heroMockInput}</span>
+                  <strong>.md</strong>
+                  <ul>
+                    <li>{c.heroMockStep1}</li>
+                    <li>{c.heroMockStep2}</li>
+                    <li>{c.heroMockStep3}</li>
+                  </ul>
                 </div>
-                <small>{convertProgress ?? 64}%</small>
+                <div className="hero-flow-arrow">
+                  <span />
+                </div>
+                <div className="hero-flow-card hero-flow-card-output">
+                  <span>{c.heroMockOutput}</span>
+                  <strong>PDF</strong>
+                  <div className="hero-doc-preview">
+                    <em>{c.trustLabel}</em>
+                    <b>{c.trustValue}</b>
+                    <i />
+                    <i />
+                    <i />
+                  </div>
+                </div>
               </div>
-            </div>
+            </aside>
           </div>
         </section>
 
         <section className="section-white-grid section-transition motion rise-2">
           <div className="shell-lite">
-            <p className="section-kicker">{c.sectionKicker}</p>
-            <h2>{c.sectionTitle}</h2>
-            <p>{c.sectionCopy}</p>
+            <p className="section-kicker">{c.problemKicker}</p>
+            <h2>{c.problemTitle}</h2>
+            <p>{c.problemCopy}</p>
             <div className="white-cards" data-deck-group>
               <article className="deck-card">
-                <strong>{c.card1t}</strong>
-                <span>{c.card1d}</span>
+                <strong>{c.problem1t}</strong>
+                <span>{c.problem1d}</span>
               </article>
               <article className="deck-card">
-                <strong>{c.card2t}</strong>
-                <span>{c.card2d}</span>
+                <strong>{c.problem2t}</strong>
+                <span>{c.problem2d}</span>
               </article>
               <article className="deck-card">
-                <strong>{c.card3t}</strong>
-                <span>{c.card3d}</span>
+                <strong>{c.problem3t}</strong>
+                <span>{c.problem3d}</span>
               </article>
             </div>
           </div>
         </section>
 
-        <section className="section-dark-feature section-transition motion rise-2">
+        <section
+          className="section-dark-feature section-transition motion rise-2"
+          id="como-funciona"
+        >
           <div className="shell-dark surface-lift">
-            <div className="feature-navline">
-              <span>{c.featureTabs[0]}</span>
-              <span>{c.featureTabs[1]}</span>
-              <span>{c.featureTabs[2]}</span>
-              <span>{c.featureTabs[3]}</span>
-            </div>
-            <div className="feature-panel" data-deck-group>
-              <aside className="deck-card">
-                <p>{c.featureTitle}</p>
+            <p className="section-kicker section-kicker-dark">{c.solutionKicker}</p>
+            <h2 className="section-title-dark">{c.solutionTitle}</h2>
+            <p className="section-copy-dark">{c.solutionCopy}</p>
+
+            <div className="feature-panel landing-steps" data-deck-group>
+              <aside className="deck-card landing-steps-summary">
+                <p>{c.stepsTitle}</p>
                 <ul>
-                  <li>{c.featureItem1}</li>
-                  <li>{c.featureItem2}</li>
-                  <li>{c.featureItem3}</li>
-                  <li>{c.featureItem4}</li>
+                  <li>{c.step1d}</li>
+                  <li>{c.step2d}</li>
+                  <li>{c.step3d}</li>
                 </ul>
               </aside>
-              <div className="feature-canvas deck-card">
-                <div className="feature-canvas-inner" />
+              <div className="landing-step-grid">
+                <article className="deck-card landing-step-card">
+                  <strong>{c.step1t}</strong>
+                  <p>{c.step1d}</p>
+                </article>
+                <article className="deck-card landing-step-card">
+                  <strong>{c.step2t}</strong>
+                  <p>{c.step2d}</p>
+                </article>
+                <article className="deck-card landing-step-card">
+                  <strong>{c.step3t}</strong>
+                  <p>{c.step3d}</p>
+                </article>
               </div>
             </div>
-            <div className="feature-columns" data-deck-group>
-              <article className="deck-card">
-                <strong>{c.feat1t}</strong>
-                <p>{c.feat1d}</p>
+          </div>
+        </section>
+
+        <section className="section-transition motion rise-2">
+          <div className="landing-section-shell">
+            <div className="landing-section-head">
+              <p className="section-kicker">{c.productKicker}</p>
+              <h2>{c.productTitle}</h2>
+              <p>{c.productCopy}</p>
+            </div>
+
+            <div className="feature-columns landing-product-grid" data-deck-group>
+              <article className="deck-card landing-product-card">
+                <strong>{c.productStat1}</strong>
+                <p>{c.benefit2d}</p>
               </article>
-              <article className="deck-card">
-                <strong>{c.feat2t}</strong>
-                <p>{c.feat2d}</p>
+              <article className="deck-card landing-product-card">
+                <strong>{c.productStat2}</strong>
+                <p>{c.heroFlowCopy}</p>
               </article>
-              <article className="deck-card">
-                <strong>{c.feat3t}</strong>
-                <p>{c.feat3d}</p>
+              <article className="deck-card landing-product-card">
+                <strong>{c.productStat3}</strong>
+                <p>{c.benefit3d}</p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section className="section-transition motion rise-2">
+          <div className="landing-section-shell landing-benefits-shell">
+            <div className="landing-section-head">
+              <p className="section-kicker">{c.benefitsKicker}</p>
+              <h2>{c.benefitsTitle}</h2>
+            </div>
+
+            <div className="landing-benefits-grid" data-deck-group>
+              <article className="deck-card landing-benefit-card">
+                <strong>{c.benefit1t}</strong>
+                <p>{c.benefit1d}</p>
+              </article>
+              <article className="deck-card landing-benefit-card">
+                <strong>{c.benefit2t}</strong>
+                <p>{c.benefit2d}</p>
+              </article>
+              <article className="deck-card landing-benefit-card">
+                <strong>{c.benefit3t}</strong>
+                <p>{c.benefit3d}</p>
               </article>
             </div>
           </div>
@@ -888,6 +1537,7 @@ export default function HomePage() {
             <p>{c.freeKicker}</p>
             <h2>{c.freeTitle}</h2>
             <span>{c.freeSubtitle}</span>
+
             <div className="free-security-note">
               <strong>{c.freeSecurityTitle}</strong>
               <ul>
@@ -901,6 +1551,75 @@ export default function HomePage() {
 
           <div className="converter-grid" data-deck-group>
             <form className="converter-panel deck-card" onSubmit={convertToPdf}>
+              <div className="converter-meta-grid">
+                <div className="converter-meta-card">
+                  <small>{c.docsLabel}</small>
+                  <strong>
+                    {documents.length}/{FREE_LIMITS.documents.maxFiles}
+                  </strong>
+                </div>
+                <div className="converter-meta-card">
+                  <small>{c.docsActive}</small>
+                  <strong>{fileName}</strong>
+                </div>
+                <div className="converter-meta-card">
+                  <small>{c.imgLabel}</small>
+                  <strong>
+                    {attachments.length}/
+                    {FREE_LIMITS.attachments.maxFilesPerDocument}
+                  </strong>
+                </div>
+                <div className="converter-meta-card">
+                  <small>{c.logoLabel}</small>
+                  <strong>{customLogo ? c.logoSelected : "-"}</strong>
+                </div>
+              </div>
+
+              <div className="document-switcher">
+                <div className="document-switcher-head">
+                  <div>
+                    <strong>{c.docsLabel}</strong>
+                    <small>{c.docsHelper}</small>
+                  </div>
+                  <button type="button" onClick={addDocument}>
+                    {c.docsAdd}
+                  </button>
+                </div>
+                <div className="document-switcher-list">
+                  {documents.map((document, index) => {
+                    const isActive = document.id === activeDocument?.id;
+                    const shortName =
+                      document.fileName.trim() || `${c.docUntitled} ${index + 1}`;
+                    return (
+                      <button
+                        key={document.id}
+                        type="button"
+                        className={`document-pill ${isActive ? "active" : ""}`}
+                        onClick={() => setActiveDocumentId(document.id)}
+                      >
+                        <span>MD {index + 1}</span>
+                        <strong>{shortName}</strong>
+                        <small>
+                          {document.attachments.length}/
+                          {FREE_LIMITS.attachments.maxFilesPerDocument} imgs
+                        </small>
+                      </button>
+                    );
+                  })}
+                </div>
+                {documents.length > 1 ? (
+                  <div className="document-switcher-actions">
+                    <button
+                      type="button"
+                      className="document-remove"
+                      onClick={() => activeDocument && removeDocument(activeDocument.id)}
+                    >
+                      {c.docsRemove}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+
               <label htmlFor="md-file">{c.mdLabel}</label>
               <input
                 className="sr-only"
@@ -935,9 +1654,11 @@ export default function HomePage() {
                   }
                 }}
               >
-                <p className="upload-title">{c.mdDrop}</p>
+                <p className="upload-title">
+                  {isMdDragOver ? c.mdDragging : c.mdDrop}
+                </p>
                 <p className="upload-subtitle">
-                  {c.mdCurrent} {fileName}
+                  {c.mdCurrent}: {markdown.trim() ? fileName : c.noMdYet}
                 </p>
               </div>
 
@@ -965,7 +1686,7 @@ export default function HomePage() {
                 id="image-files"
                 ref={imageInputRef}
                 type="file"
-                accept="image/*"
+                accept=".png,image/png,.jpg,.jpeg,image/jpeg,.webp,image/webp"
                 multiple
                 onChange={onAttachmentChange}
               />
@@ -994,9 +1715,12 @@ export default function HomePage() {
                   }
                 }}
               >
-                <p className="upload-title">{c.imgDrop}</p>
+                <p className="upload-title">
+                  {isImageDragOver ? c.imgDragging : c.imgDrop}
+                </p>
                 <p className="upload-subtitle">
-                  {attachments.length} / {FREE_LIMITS.attachments.maxFiles}{" "}
+                  {attachments.length} /{" "}
+                  {FREE_LIMITS.attachments.maxFilesPerDocument}{" "}
                   {c.attachmentsSelected}
                 </p>
               </div>
@@ -1019,13 +1743,116 @@ export default function HomePage() {
                 </div>
               ) : null}
 
+              <label htmlFor="logo-file">{c.logoLabel}</label>
+              <input
+                className="sr-only"
+                id="logo-file"
+                ref={logoInputRef}
+                type="file"
+                accept=".png,image/png,.jpg,.jpeg,image/jpeg,.webp,image/webp"
+                onChange={onLogoChange}
+              />
+              <div
+                className={`upload-card upload-card-logo ${isLogoDragOver ? "drag-over" : ""}`}
+                onClick={() => logoInputRef.current?.click()}
+                onDragEnter={(event) => {
+                  preventDragDefaults(event);
+                  setIsLogoDragOver(true);
+                }}
+                onDragOver={(event) => {
+                  preventDragDefaults(event);
+                  setIsLogoDragOver(true);
+                }}
+                onDragLeave={(event) => {
+                  preventDragDefaults(event);
+                  setIsLogoDragOver(false);
+                }}
+                onDrop={onLogoDrop}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    logoInputRef.current?.click();
+                  }
+                }}
+              >
+                <p className="upload-title">
+                  {isLogoDragOver ? c.logoDragging : c.logoDrop}
+                </p>
+                <p className="upload-subtitle">{c.logoHint}</p>
+              </div>
+
+              {logoImportProgress !== null ? (
+                <div className="progress-block" aria-live="polite">
+                  <div className="progress-head">
+                    <small>{c.logoLabel}</small>
+                    <small>{logoImportProgress}%</small>
+                  </div>
+                  <div
+                    className="progress-track"
+                    role="progressbar"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={logoImportProgress}
+                  >
+                    <span style={{ width: `${logoImportProgress}%` }} />
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="logo-tone-group" aria-label={c.logoToneLabel}>
+                <button
+                  type="button"
+                  className={`logo-tone-button ${customLogoTone === "dark" ? "active" : ""}`}
+                  onClick={() => setCustomLogoTone("dark")}
+                >
+                  <strong>{c.logoToneDark}</strong>
+                  <small>{c.logoToneDarkHint}</small>
+                </button>
+                <button
+                  type="button"
+                  className={`logo-tone-button ${customLogoTone === "light" ? "active" : ""}`}
+                  onClick={() => setCustomLogoTone("light")}
+                >
+                  <strong>{c.logoToneLight}</strong>
+                  <small>{c.logoToneLightHint}</small>
+                </button>
+              </div>
+
+              {customLogo ? (
+                <div className="logo-preview-card">
+                  <img
+                    alt={customLogo.fileName}
+                    src={customLogo.dataUrl}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <div>
+                    <strong>{customLogo.fileName}</strong>
+                    <small>
+                      {customLogo.mimeType} · {formatBytes(customLogo.sizeBytes ?? 0)}
+                    </small>
+                  </div>
+                  <button type="button" onClick={removeCustomLogo}>
+                    {c.removeLogo}
+                  </button>
+                </div>
+              ) : null}
+
               <div className="attachments-list">
+                <small className="attachments-context">{c.docsAttachmentsHint}</small>
                 {attachments.length === 0 ? (
                   <small>{c.noAttachment}</small>
                 ) : (
                   attachments.map((item) => (
                     <div className="attachment-item" key={item.id}>
-                      <img alt={item.fileName} src={item.dataUrl} />
+                      <img
+                        alt={item.fileName}
+                        src={item.dataUrl}
+                        loading="lazy"
+                        decoding="async"
+                      />
                       <div>
                         <strong>{item.fileName}</strong>
                         <small>
@@ -1046,12 +1873,17 @@ export default function HomePage() {
 
               <label htmlFor="markdown">{c.contentMd}</label>
               <div className="markdown-counter" aria-live="polite">
-                <span
-                  className={markdownNearLimit ? "counter-warn" : undefined}
-                >
+                <span className={markdownNearLimit ? "counter-warn" : undefined}>
                   {markdownLength.toLocaleString(formatLocale)} /{" "}
                   {FREE_LIMITS.markdown.maxChars.toLocaleString(formatLocale)}{" "}
                   {locale === "pt" ? "caracteres" : "characters"}
+                </span>
+                <span>
+                  {c.docsTotalChars}:{" "}
+                  {totalMarkdownChars.toLocaleString(formatLocale)} /{" "}
+                  {FREE_LIMITS.documents.maxTotalChars.toLocaleString(
+                    formatLocale,
+                  )}
                 </span>
               </div>
               <textarea
@@ -1059,28 +1891,48 @@ export default function HomePage() {
                 rows={14}
                 maxLength={FREE_LIMITS.markdown.maxChars}
                 value={markdown}
-                onChange={(event) => setMarkdown(event.target.value)}
+                onChange={(event) =>
+                  updateActiveDocument((document) => ({
+                    ...document,
+                    markdown: event.target.value,
+                  }))
+                }
               />
               <small className="limit-hint">
-                {c.limits} {locale === "pt" ? "até" : "up to"}{" "}
-                {FREE_LIMITS.markdown.maxChars.toLocaleString(formatLocale)}{" "}
-                {locale === "pt"
-                  ? "caracteres de markdown, até"
-                  : "markdown characters, up to"}{" "}
-                {FREE_LIMITS.attachments.maxFiles}{" "}
-                {locale === "pt" ? "anexos," : "attachments,"}{" "}
+                {c.limits}: {FREE_LIMITS.markdown.maxChars.toLocaleString(formatLocale)}{" "}
+                {locale === "pt" ? "caracteres," : "characters,"}{" "}
+                {FREE_LIMITS.attachments.maxFilesPerDocument}{" "}
+                {locale === "pt" ? "anexos por documento, até" : "attachments per document, up to"}{" "}
                 {formatBytes(FREE_LIMITS.attachments.maxFileBytes)}{" "}
-                {locale === "pt" ? "por anexo e" : "per attachment and"}{" "}
+                {locale === "pt" ? "por anexo e" : "per file and"}{" "}
                 {formatBytes(FREE_LIMITS.attachments.maxTotalBytes)}{" "}
-                {locale === "pt" ? "no total. Tipos:" : "total. Types:"}{" "}
-                {FREE_LIMITS.attachments.allowedMimeTypes.join(", ")}.
+                {locale === "pt" ? "no total. Até" : "total. Up to"}{" "}
+                {FREE_LIMITS.documents.maxFiles}{" "}
+                {locale === "pt" ? "markdowns por geração." : "markdown files per run."}
               </small>
 
+              <div className={`status-card status-${statusKind}`} aria-live="polite">
+                <strong>{statusMessage}</strong>
+                <small>
+                  {locale === "pt"
+                    ? "Nenhum conteúdo é salvo no modo Free."
+                    : "No content is stored in Free mode."}
+                </small>
+              </div>
+
               <div className="submit-row">
-                <button disabled={loading || !markdown.trim()} type="submit">
-                  {loading ? c.converting : c.generate}
+                <button
+                  disabled={loading || documents.some((item) => !item.markdown.trim())}
+                  type="submit"
+                >
+                  {loading
+                    ? documents.length > 1
+                      ? c.convertingMany
+                      : c.converting
+                    : documents.length > 1
+                      ? c.generateMany
+                      : c.generate}
                 </button>
-                <small className="status-text">{status}</small>
               </div>
 
               {convertProgress !== null ? (
@@ -1103,31 +1955,175 @@ export default function HomePage() {
                   </div>
                 </div>
               ) : null}
+
+              {lastGeneratedFile ? (
+                <div className="generated-card">
+                  <strong>
+                    {documents.length > 1 ? c.generatedManyTitle : c.generatedTitle}
+                  </strong>
+                  <p>
+                    {documents.length > 1 ? c.generatedManyCopy : c.generatedCopy}
+                  </p>
+                  <small>{lastGeneratedFile}</small>
+                </div>
+              ) : null}
             </form>
 
             <article className="converter-panel preview-panel deck-card">
               <div className="output-head">
-                <h3>Preview do markdown</h3>
-                <small>{fileName}</small>
+                <h3>{c.previewTitle}</h3>
+                <small>{markdown.trim() ? fileName : c.noMdYet}</small>
               </div>
-              <pre>{markdown}</pre>
+              <small className="preview-context">{c.docsPreviewHint}</small>
+              <div className="preview-document-shell">
+                <div className="preview-document-page">
+                  <header className="preview-document-header">
+                    <div className="preview-document-left">
+                      <div className="preview-document-client-card">
+                        <div
+                          className={`preview-brand-client-surface tone-${customLogoTone}`}
+                        >
+                          {customLogo ? (
+                            <img alt={customLogo.fileName} src={customLogo.dataUrl} />
+                          ) : (
+                            <div className="preview-brand-placeholder">+</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="preview-document-side">
+                      <div className="preview-document-nexo-mark">
+                        <img alt="NEXO" src="/brand/nexo_logo_primary.svg" />
+                        <span>NEXO</span>
+                      </div>
+                    </div>
+                  </header>
+
+                  <section className="preview-document-content">
+                    {markdown.trim() ? (
+                      <div className="preview-document-markdown-wrap">
+                        <div
+                          className="preview-document-markdown"
+                          dangerouslySetInnerHTML={{ __html: previewHtml }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="preview-document-empty">{c.previewEmpty}</div>
+                    )}
+
+                    {attachments.length > 0 ? (
+                      <div className="preview-document-attachments">
+                        <strong>
+                          {attachments.length}{" "}
+                          {attachments.length === 1
+                            ? locale === "pt"
+                              ? "evidência anexada"
+                              : "evidence attached"
+                            : locale === "pt"
+                              ? "evidências anexadas"
+                              : "evidences attached"}
+                        </strong>
+                        <small>{c.docsAttachmentsHint}</small>
+                      </div>
+                    ) : null}
+                  </section>
+
+                  <footer className="preview-document-footer">
+                    <span className="preview-document-footer-badge">FREE</span>
+                    <span>{fileName} · Prévia visual do PDF</span>
+                  </footer>
+                </div>
+              </div>
             </article>
           </div>
+        </section>
 
-          <div className="bottom-cta deck-card">
-            <p>{c.bottomCta}</p>
-            <Link
-              className="btn-cta-main"
-              href="/pricing"
-              onClick={() => trackGoToPricing("bottom_cta")}
-            >
-              {c.ctaAccess}
-            </Link>
+        <section className="section-transition motion rise-2">
+          <div className="landing-section-shell landing-access-shell" id="planos">
+            <div className="landing-section-head">
+              <p className="section-kicker">{c.plansKicker}</p>
+              <h2>{c.plansTitle}</h2>
+              <p>{c.plansCopy}</p>
+            </div>
+
+            <div className="landing-access-grid" data-deck-group>
+              <article className="deck-card landing-access-card">
+                <strong>{c.pricingCardTitle}</strong>
+                <p>{c.pricingCardBody}</p>
+                <Link
+                  className="btn-cta-alt"
+                  href="/pricing"
+                  onClick={() => trackPricing("plans_card")}
+                >
+                  {c.ctaPlans}
+                </Link>
+              </article>
+              <article className="deck-card landing-access-card landing-access-card-highlight">
+                <strong>{c.waitlistCardTitle}</strong>
+                <p>{c.waitlistCardBody}</p>
+                <Link
+                  className="btn-cta-main"
+                  href="/pricing"
+                  onClick={() => trackWaitlist("plans_waitlist")}
+                >
+                  {c.ctaWaitlist}
+                </Link>
+              </article>
+            </div>
+
+            <div className="landing-note">
+              <p>{c.plansNote}</p>
+            </div>
           </div>
         </section>
+
+        <section
+          className="section-transition motion rise-2"
+          id="suporte"
+        >
+          <div className="landing-section-shell landing-support-shell">
+            <div className="landing-section-head">
+              <p className="section-kicker">{c.supportKicker}</p>
+              <h2>{c.supportTitle}</h2>
+              <p>{c.supportCopy}</p>
+            </div>
+
+            <div className="landing-support-grid" data-deck-group>
+              <article className="deck-card landing-support-card">
+                <ul>
+                  <li>{c.supportPoint1}</li>
+                  <li>{c.supportPoint2}</li>
+                  <li>{c.supportPoint3}</li>
+                </ul>
+              </article>
+              <article className="deck-card landing-support-card">
+                <Link
+                  className="btn-cta-alt"
+                  href="/suporte"
+                  onClick={() => trackSupport("support_section")}
+                >
+                  {c.supportCta}
+                </Link>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <a
+          className="mobile-sticky-cta"
+          href="#free-converter"
+          onClick={() => trackPrimaryCta("sticky_mobile")}
+        >
+          {c.stickyCta}
+        </a>
       </main>
+
       <div className="page-footer-wrap">
-        <SiteFooter />
+        <SiteFooter
+          onFreeClick={() => trackPrimaryCta("footer_free")}
+          onPricingClick={() => trackPricing("footer")}
+          onSupportClick={() => trackSupport("footer")}
+        />
       </div>
     </>
   );

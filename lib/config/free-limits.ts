@@ -1,9 +1,18 @@
 export const FREE_LIMITS = {
+  documents: {
+    maxFiles: 3,
+    maxTotalChars: 180_000
+  },
   markdown: {
     maxChars: 120_000
   },
+  branding: {
+    maxLogoBytes: 2 * 1024 * 1024,
+    allowedMimeTypes: ["image/png", "image/jpeg", "image/webp", "image/svg+xml"] as const
+  },
   attachments: {
     maxFiles: 8,
+    maxFilesPerDocument: 4,
     maxFileBytes: 4 * 1024 * 1024,
     maxTotalBytes: 16 * 1024 * 1024,
     allowedMimeTypes: ["image/png", "image/jpeg", "image/webp"] as const
