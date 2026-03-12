@@ -1,6 +1,7 @@
 import MarkdownIt from "markdown-it";
 import { existsSync, readFileSync } from "node:fs";
 import { extname, join } from "node:path";
+import serverlessChromium from "@sparticuz/chromium";
 import { chromium } from "playwright";
 
 type AttachmentInput = {
@@ -538,19 +539,31 @@ export async function buildPdfFromMarkdown(input: BuildPdfInput) {
   const watermarkLogoDataUrl = resolveBrandAssetDataUrl(WATERMARK_LOGO_CANDIDATES);
   const html = buildDocumentHtml(input, generatedAt, headerLogoDataUrl, watermarkLogoDataUrl);
   const explicitExecutablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+  const isServerlessRuntime = Boolean(
+    process.env.VERCEL || process.env.AWS_REGION || process.env.AWS_LAMBDA_FUNCTION_VERSION
+  );
 
   let browser;
   try {
-    browser = explicitExecutablePath
-      ? await chromium.launch({ headless: true, executablePath: explicitExecutablePath })
-      : await chromium.launch({ headless: true });
+    if (explicitExecutablePath) {
+      browser = await chromium.launch({ headless: true, executablePath: explicitExecutablePath });
+    } else if (isServerlessRuntime) {
+      const executablePath = await serverlessChromium.executablePath();
+      browser = await chromium.launch({
+        headless: true,
+        executablePath,
+        args: serverlessChromium.args
+      });
+    } else {
+      browser = await chromium.launch({ headless: true });
+    }
   } catch {
     try {
       // Fallback to the locally installed Google Chrome when Playwright Chromium is missing.
       browser = await chromium.launch({ headless: true, channel: "chrome" });
     } catch {
       throw new Error(
-        "chromium_missing: execute 'yarn playwright install chromium' (ou defina PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH)"
+        "chromium_missing: configure Chromium for the runtime (Vercel/serverless) or define PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH"
       );
     }
   }
