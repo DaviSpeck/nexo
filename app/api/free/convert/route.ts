@@ -5,6 +5,7 @@ import { FREE_LIMITS, formatBytes } from "@/lib/config/free-limits";
 import { buildPdfFromMarkdown } from "@/lib/services/pdf/simple-pdf";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const dataUrlPattern = /^data:([^;,]+)(?:;[^,]+)*;base64,([A-Za-z0-9+/=]+)$/;
 

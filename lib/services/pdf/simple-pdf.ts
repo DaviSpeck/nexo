@@ -544,14 +544,20 @@ export async function buildPdfFromMarkdown(input: BuildPdfInput) {
     process.env.VERCEL || process.env.AWS_REGION || process.env.AWS_LAMBDA_FUNCTION_VERSION
   );
   const hasServerlessChromiumBundle = existsSync(serverlessChromiumBinPath);
+  const isServerlessChromiumRuntime = isServerlessRuntime && hasServerlessChromiumBundle;
 
   let browser;
   let launchError: unknown;
   try {
     if (explicitExecutablePath) {
-      browser = await chromium.launch({ headless: true, executablePath: explicitExecutablePath });
-    } else if (isServerlessRuntime && hasServerlessChromiumBundle) {
-      const executablePath = await serverlessChromium.executablePath();
+      browser = await chromium.launch({
+        headless: true,
+        executablePath: explicitExecutablePath
+      });
+    } else if (isServerlessChromiumRuntime) {
+      // Disable the graphics stack in serverless to reduce memory pressure during PDF rendering.
+      serverlessChromium.setGraphicsMode = false;
+      const executablePath = await serverlessChromium.executablePath(serverlessChromiumBinPath);
       browser = await chromium.launch({
         headless: true,
         executablePath,
@@ -577,26 +583,47 @@ export async function buildPdfFromMarkdown(input: BuildPdfInput) {
   }
 
   try {
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "networkidle" });
-
-    const pdf = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      displayHeaderFooter: true,
-      headerTemplate: "<div></div>",
-      footerTemplate: buildFooterTemplate(generatedAt, input.sourceName),
-      margin: {
-        top: "16mm",
-        right: "14mm",
-        bottom: "22mm",
-        left: "14mm"
-      },
-      preferCSSPageSize: false
+    const context = await browser.newContext({
+      deviceScaleFactor: 1,
+      viewport: {
+        width: 1240,
+        height: 1754
+      }
     });
 
-    return Buffer.from(pdf);
+    try {
+      const page = await context.newPage();
+
+      try {
+        await page.setContent(html, { waitUntil: "load" });
+        await page.emulateMedia({ media: "print" });
+
+        const pdf = await page.pdf({
+          format: "A4",
+          printBackground: true,
+          displayHeaderFooter: true,
+          headerTemplate: "<div></div>",
+          footerTemplate: buildFooterTemplate(generatedAt, input.sourceName),
+          margin: {
+            top: "16mm",
+            right: "14mm",
+            bottom: "22mm",
+            left: "14mm"
+          },
+          preferCSSPageSize: false
+        });
+
+        return Buffer.from(pdf);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error ?? "unknown");
+        throw new Error(`pdf_render_failed: ${reason}`);
+      } finally {
+        await page.close().catch(() => undefined);
+      }
+    } finally {
+      await context.close().catch(() => undefined);
+    }
   } finally {
-    await browser.close();
+    await browser.close().catch(() => undefined);
   }
 }
