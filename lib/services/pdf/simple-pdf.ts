@@ -539,16 +539,18 @@ export async function buildPdfFromMarkdown(input: BuildPdfInput) {
   const watermarkLogoDataUrl = resolveBrandAssetDataUrl(WATERMARK_LOGO_CANDIDATES);
   const html = buildDocumentHtml(input, generatedAt, headerLogoDataUrl, watermarkLogoDataUrl);
   const explicitExecutablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+  const serverlessChromiumBinPath = join(process.cwd(), "node_modules", "@sparticuz", "chromium", "bin");
   const isServerlessRuntime = Boolean(
     process.env.VERCEL || process.env.AWS_REGION || process.env.AWS_LAMBDA_FUNCTION_VERSION
   );
+  const hasServerlessChromiumBundle = existsSync(serverlessChromiumBinPath);
 
   let browser;
   let launchError: unknown;
   try {
     if (explicitExecutablePath) {
       browser = await chromium.launch({ headless: true, executablePath: explicitExecutablePath });
-    } else if (isServerlessRuntime) {
+    } else if (isServerlessRuntime && hasServerlessChromiumBundle) {
       const executablePath = await serverlessChromium.executablePath();
       browser = await chromium.launch({
         headless: true,
