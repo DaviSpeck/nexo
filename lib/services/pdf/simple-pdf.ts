@@ -71,7 +71,7 @@ function buildDocumentHtml(
   const md = new MarkdownIt({
     html: false,
     linkify: true,
-    typographer: true,
+    typographer: false,
     breaks: true,
     tables: true,
   });
@@ -151,7 +151,7 @@ function buildDocumentHtml(
 
           body {
             margin: 0;
-            font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+            font-family: Arial, Helvetica, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
             color: #132444;
             background: #ffffff;
             line-height: 1.45;
@@ -231,7 +231,7 @@ function buildDocumentHtml(
           }
 
           .custom-logo-surface.tone-light {
-            background: linear-gradient(180deg, #ffffff 0%, #edf3ff 100%);
+            background: linear-gradient(180deg, #ffffff 0%, #eef4fc 100%);
           }
 
           .custom-logo-surface.tone-dark {
@@ -275,12 +275,7 @@ function buildDocumentHtml(
           }
 
           .content {
-            padding: 14px 16px 10px;
-            background: linear-gradient(180deg, #f8fbff 0%, #f3f8ff 100%);
-            border: 1px solid #e5edf9;
-            border-radius: 10px;
-            -webkit-box-decoration-break: clone;
-            box-decoration-break: clone;
+            padding: 14px 0 10px;
             position: relative;
             z-index: 1;
           }
@@ -351,7 +346,7 @@ function buildDocumentHtml(
 
           .content pre,
           .content code {
-            font-family: "JetBrains Mono", "Consolas", monospace;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
           }
 
           .content pre {
@@ -400,7 +395,6 @@ function buildDocumentHtml(
             table-layout: auto;
             border: 1px solid #d7e4f7;
             background: #ffffff;
-            box-shadow: 0 8px 20px rgb(13 35 72 / 6%);
             page-break-inside: auto;
             break-inside: auto;
           }
@@ -479,10 +473,10 @@ function buildDocumentHtml(
           }
 
           .attachment-card {
-            border: 1px solid #cfdcf6;
+            border: 1px solid #d7e0ef;
             border-radius: 10px;
             padding: 3.2mm;
-            background: #f8faff;
+            background: #fbfcfe;
             break-inside: avoid;
             page-break-inside: avoid;
           }
@@ -502,9 +496,9 @@ function buildDocumentHtml(
 
           .image-box {
             height: 88mm;
-            border: 1px dashed #9cb3dd;
+            border: 1px dashed #c4d0e4;
             border-radius: 8px;
-            background: linear-gradient(180deg, #eef4ff 0%, #e7effe 100%);
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f4f8 100%);
             display: grid;
             place-items: center;
             padding: 3mm;
@@ -518,7 +512,7 @@ function buildDocumentHtml(
             background-position: center center;
             background-size: contain;
             border-radius: 6px;
-            background-color: #dbe7ff;
+            background-color: #eef2f7;
           }
         </style>
       </head>

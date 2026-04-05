@@ -3,6 +3,8 @@
 :root {
   --bg: #060912;
   --bg-2: #0d1430;
+  --logo-tone-light-bg: linear-gradient(180deg, #ffffff 0%, #eef4fc 100%);
+  --logo-tone-dark-bg: linear-gradient(180deg, #16325e 0%, #1d427c 100%);
   --line: #2a395e;
   --text: #ebf2ff;
   --muted: #9cb0d4;
@@ -1094,7 +1096,7 @@ button:disabled {
   margin-top: 10px;
   margin-bottom: 10px;
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) auto;
+  grid-template-columns: 104px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
   border: 1px solid #45689d5c;
@@ -1103,14 +1105,32 @@ button:disabled {
   background: #09152acc;
 }
 
-.logo-preview-card img {
-  width: 64px;
+.logo-preview-surface {
+  width: 104px;
   height: 64px;
-  object-fit: contain;
+  display: grid;
+  place-items: center;
   border-radius: 10px;
   border: 1px solid #4a6ea6;
-  background: #ffffff;
-  padding: 8px;
+  overflow: hidden;
+}
+
+.logo-preview-surface.tone-light {
+  background: var(--logo-tone-light-bg);
+}
+
+.logo-preview-surface.tone-dark {
+  background: var(--logo-tone-dark-bg);
+}
+
+.logo-preview-card img {
+  width: 86px;
+  height: 46px;
+  object-fit: contain;
+  border-radius: 10px;
+  border: 0;
+  background: transparent;
+  padding: 4px 8px;
 }
 
 .logo-tone-group {
@@ -1130,6 +1150,14 @@ button:disabled {
   color: var(--text-strong);
   background: #09152acc;
   box-shadow: none;
+}
+
+.logo-tone-button.tone-dark {
+  background: #09152acc;
+}
+
+.logo-tone-button.tone-light {
+  background: #09152acc;
 }
 
 .logo-tone-button strong,
@@ -1206,11 +1234,11 @@ button:disabled {
 }
 
 .preview-brand-client-surface.tone-light {
-  background: linear-gradient(180deg, #ffffff 0%, #eef4fc 100%);
+  background: var(--logo-tone-light-bg);
 }
 
 .preview-brand-client-surface.tone-dark {
-  background: linear-gradient(180deg, #16325e 0%, #1d427c 100%);
+  background: var(--logo-tone-dark-bg);
 }
 
 .preview-brand-client-surface img {
@@ -1335,10 +1363,7 @@ button:disabled {
 
 .preview-document-content {
   margin-top: 16px;
-  border: 1px solid #d7e4f7;
-  border-radius: 16px;
-  padding: 18px 20px;
-  background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
+  padding: 18px 0 0;
 }
 
 .preview-document-markdown-wrap {
@@ -1408,6 +1433,11 @@ button:disabled {
   line-height: 1.65;
 }
 
+.preview-document-markdown {
+  font-family: "Inter", "Segoe UI", "Apple Color Emoji", "Segoe UI Emoji",
+    "Noto Color Emoji", system-ui, sans-serif;
+}
+
 .preview-document-markdown ul,
 .preview-document-markdown ol {
   padding-left: 22px;
@@ -1457,9 +1487,7 @@ button:disabled {
   border-collapse: collapse;
   table-layout: auto;
   border: 1px solid #d7e4f7;
-  border-radius: 12px;
   background: #ffffff;
-  box-shadow: 0 10px 24px rgb(13 35 72 / 6%);
 }
 
 .preview-document-markdown th,
@@ -2560,9 +2588,13 @@ html.deck-enabled .deck-card.deck-in {
 [data-theme="light"] .logo-preview-card,
 [data-theme="light"] .preview-brand-bar,
 [data-theme="light"] .preview-document-shell,
-[data-theme="light"] .logo-tone-button,
 [data-theme="light"] .document-switcher,
 [data-theme="light"] .attachment-item {
+  background: #fbfdff;
+  border-color: #bfd1ec;
+}
+
+[data-theme="light"] .logo-tone-button {
   background: #fbfdff;
   border-color: #bfd1ec;
 }

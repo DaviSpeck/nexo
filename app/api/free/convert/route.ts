@@ -36,13 +36,24 @@ const requestSchema = z.object({
   customLogo: customLogoSchema.optional()
 });
 
+function canonicalizeMimeType(mimeType: string) {
+  const normalized = mimeType.trim().toLowerCase().split(";")[0].trim();
+  if (normalized === "image/jpg") {
+    return "image/jpeg";
+  }
+  if (normalized === "image/svg") {
+    return "image/svg+xml";
+  }
+  return normalized;
+}
+
 function extractDataUrlInfo(dataUrl: string) {
   const match = dataUrlPattern.exec(dataUrl);
   if (!match) {
     return null;
   }
 
-  const mimeType = match[1].toLowerCase();
+  const mimeType = canonicalizeMimeType(match[1]);
   const base64 = match[2];
   const padding = base64.endsWith("==") ? 2 : base64.endsWith("=") ? 1 : 0;
   const bytes = Math.floor((base64.length * 3) / 4) - padding;
@@ -51,7 +62,7 @@ function extractDataUrlInfo(dataUrl: string) {
 }
 
 function normalizeMimeType(fileName: string, mimeType: string) {
-  const normalized = mimeType.trim().toLowerCase();
+  const normalized = canonicalizeMimeType(mimeType);
   if (normalized) {
     return normalized;
   }

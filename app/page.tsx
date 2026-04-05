@@ -47,7 +47,7 @@ type StatusKind = "neutral" | "success" | "error" | "loading";
 const previewMarkdownParser = new MarkdownIt({
   html: false,
   linkify: true,
-  typographer: true,
+  typographer: false,
   breaks: true,
   tables: true,
 });
@@ -454,8 +454,14 @@ function readFileAsText(file: File, onProgress?: (percent: number) => void) {
 }
 
 function inferMimeType(file: File) {
-  const explicit = file.type.toLowerCase();
+  const explicit = file.type.toLowerCase().split(";")[0].trim();
   if (explicit) {
+    if (explicit === "image/jpg") {
+      return "image/jpeg";
+    }
+    if (explicit === "image/svg") {
+      return "image/svg+xml";
+    }
     return explicit;
   }
 
@@ -1992,7 +1998,7 @@ export default function HomePage() {
               <div className="logo-tone-group" aria-label={c.logoToneLabel}>
                 <button
                   type="button"
-                  className={`logo-tone-button ${customLogoTone === "dark" ? "active" : ""}`}
+                  className={`logo-tone-button tone-dark ${customLogoTone === "dark" ? "active" : ""}`}
                   onClick={() => setCustomLogoTone("dark")}
                 >
                   <strong>{c.logoToneDark}</strong>
@@ -2000,7 +2006,7 @@ export default function HomePage() {
                 </button>
                 <button
                   type="button"
-                  className={`logo-tone-button ${customLogoTone === "light" ? "active" : ""}`}
+                  className={`logo-tone-button tone-light ${customLogoTone === "light" ? "active" : ""}`}
                   onClick={() => setCustomLogoTone("light")}
                 >
                   <strong>{c.logoToneLight}</strong>
@@ -2010,12 +2016,14 @@ export default function HomePage() {
 
               {customLogo ? (
                 <div className="logo-preview-card">
-                  <img
-                    alt={customLogo.fileName}
-                    src={customLogo.dataUrl}
-                    loading="lazy"
-                    decoding="async"
-                  />
+                  <div className={`logo-preview-surface tone-${customLogoTone}`}>
+                    <img
+                      alt={customLogo.fileName}
+                      src={customLogo.dataUrl}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </div>
                   <div>
                     <strong>{customLogo.fileName}</strong>
                     <small>

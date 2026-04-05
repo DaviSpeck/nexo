@@ -1,8 +1,8 @@
 {
   "name": "nexo",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Markdown to corporate PDF automation for developer documentation workflows.",
-  "private": true,
+  "private": false,
   "keywords": [
     "markdown-to-pdf",
     "docs-as-code",
